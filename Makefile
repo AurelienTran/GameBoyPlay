@@ -13,4 +13,4 @@ clean:
 .PHONY: all check clean
 
 $(TARGET): $(OBJECT)
-	$(CC) $< -o $@
+	$(CC) $^ -o $@
