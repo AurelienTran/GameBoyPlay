@@ -1,5 +1,5 @@
 /**
- * PlayEmulator - Gameboy emulator written in C.
+ * PlayEmulator - Simple Gameboy emulator written in C.
  * Copyright (C) 2015 - Aurelien Tran <aurelien.tran@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
@@ -54,17 +54,29 @@ typedef union tagReg16_t
 /** Z80 Register name */
 typedef enum tagZ80_RegName_e
 {
+    /* 16 bit Register Name */
     Z80_AF = 0,     /**< Accumulator and Flag register */
-    Z80_BC,         /**< All purposed register */
-    Z80_DE,         /**< All purposed register */
+    Z80_BC,         /**< All purpose register */
+    Z80_DE,         /**< All purpose register */
     Z80_HL,         /**< Address access purpose register */
     Z80_SP,         /**< Stack Pointer register */
     Z80_PC,         /**< Program Pointer register */
     Z80_REG_NUM,    /**< Number of internal register */
 
-    Z80_NONE,       /**< Unused register id */
-    Z80_D8,         /**< Immediate 16 bit data */
-    Z80_D16,        /**< Immediate 8 bit data */
+    /* 8 bit Register Name */
+    Z80_A,          /**< Accumulator register */
+    Z80_F,          /**< Flag register */
+    Z80_B,          /**< All purpose register */
+    Z80_C,          /**< All purpose register */
+    Z80_D,          /**< All purpose register */
+    Z80_E,          /**< All purpose register */
+    Z80_H,          /**< All purpose register */
+    Z80_L,          /**< All purpose register */
+
+    /* Special location */
+    Z80_NONE,       /**< Unused */
+    Z80_D8,         /**< Immediate 8 bit data */
+    Z80_D16,        /**< Immediate 16 bit data */
     Z80_A8,         /**< 8 bit unsigned data where 0xFF00 are added */
     Z80_R8          /**< 8 bit signed data which are added to program counter */
 } Z80_RegName_e;
@@ -75,7 +87,7 @@ typedef struct tagZ80_State_t
     Reg16_t Reg[Z80_REG_NUM];   /**< Internal Register */
 } Z80_State_t;
 
-/** Forward declaration for Z80_ExecuteCallback_t definition */
+/* Forward declaration for Z80_ExecuteCallback_t definition */
 typedef struct tagZ80_OpCode_t Z80_OpCode_t;
 
 /**

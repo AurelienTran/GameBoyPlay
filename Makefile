@@ -2,7 +2,7 @@ TARGET=PlayEmulator
 SOURCE=$(wildcard src/*.c)
 OBJECT=$(patsubst %.c, %.o, $(SOURCE))
 
-CFLAGS= -std=c99 -Wall -Werror
+CFLAGS= -std=c99 -Wall
 
 check: $(TARGET)
 	./$(TARGET)
