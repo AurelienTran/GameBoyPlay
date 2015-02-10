@@ -36,6 +36,7 @@
 /******************************************************/
 
 #define BYTE_BY_WORD    2
+#define Bus_Read(Addr)  0 /** @todo define the function */
 
 
 /******************************************************/
@@ -64,7 +65,7 @@ typedef enum tagZ80_RegName_e
     Z80_REG_NUM,    /**< Number of internal register */
 
     /* 8 bit Register Name */
-    Z80_A,          /**< Accumulator register */
+    Z80_A = 0,      /**< Accumulator register */
     Z80_F,          /**< Flag register */
     Z80_B,          /**< All purpose register */
     Z80_C,          /**< All purpose register */
@@ -116,9 +117,12 @@ typedef struct tagZ80_OpCode_t
 /** Initialize Z80 */
 extern void Z80_Initialize(void);
 
-/* Callback for each OpCode */
+/* Misc Contoll OpCode Callback */
 static void Z80_Execute_Illegal(Z80_OpCode_t* opcode);
 static void Z80_Execute_NOP(Z80_OpCode_t* opcode);
+
+/* Load/Store/Move OpCode Callback */
+static void Z80_Execute_LD_Reg16_D16(Z80_OpCode_t* opcode);
 
 
 /******************************************************/
@@ -132,6 +136,31 @@ static Z80_State_t Z80_State;
 static Z80_OpCode_t const Z80_OpCode[] =
 {
     {0x00, 1, "NOP",    Z80_NONE,   Z80_NONE,   Z80_Execute_NOP},
+    {0x01, 1, "LD",     Z80_BC,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+
+    {0x11, 1, "LD",     Z80_DE,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+
+    {0x21, 1, "LD",     Z80_HL,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+
+    {0x31, 1, "LD",     Z80_SP,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+
+    {0xD3, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+
+    {0xDB, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+
+    {0xDD, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    
+    {0xE3, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xE4, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+
+    {0xEB, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xEC, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xED, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+
+    {0xF4, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+
+    {0xFC, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xFD, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
 };
 
 
@@ -165,14 +194,21 @@ void Z80_Execute_NOP(Z80_OpCode_t* opcode)
 
 /**
  * OpCode: LD BC,d16
+ * OpCode: LD DE,d16
+ * OpCode: LD HL,d16
+ * OpCode: LD SP,d16
  * Size:3, Duration:12, ZNHC Flag:----
  */
-void Z80_Execute_LD_BC_d16(Z80_OpCode_t* opcode)
+static void Z80_Execute_LD_Reg16_D16(Z80_OpCode_t* opcode)
 {
-    /** @todo */
+    Z80_State.Reg[opcode->RegDst].UByte[0] = Bus_Read(Z80_State.Reg[Z80_PC] + 1);
+    Z80_State.Reg[opcode->RegDst].UByte[1] = Bus_Read(Z80_State.Reg[Z80_PC] + 2);
+    Z80_State.Reg[Z80_PC].UWord += 3;
 }
 
+
 #if 0
+
 /**
  * OpCode: LD (BC),A
  * Size:1, Duration:8, ZNHC Flag:----
@@ -305,15 +341,6 @@ void Z80_Execute_RRCA(Z80_OpCode_t* opcode)
  * Size:2, Duration:4, ZNHC Flag:----
  */
 void Z80_Execute_STOP 0(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD DE,d16
- * Size:3, Duration:12, ZNHC Flag:----
- */
-void Z80_Execute_LD DE,d16(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -455,15 +482,6 @@ void Z80_Execute_JR NZ,r8(Z80_OpCode_t* opcode)
 }
 
 /**
- * OpCode: LD HL,d16
- * Size:3, Duration:12, ZNHC Flag:----
- */
-void Z80_Execute_LD HL,d16(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
  * OpCode: LD (HL+),A
  * Size:1, Duration:8, ZNHC Flag:----
  */
@@ -595,15 +613,6 @@ void Z80_Execute_CPL(Z80_OpCode_t* opcode)
  * Size:2, Duration:12/8, ZNHC Flag:----
  */
 void Z80_Execute_JR NC,r8(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD SP,d16
- * Size:3, Duration:12, ZNHC Flag:----
- */
-void Z80_Execute_LD SP,d16(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
