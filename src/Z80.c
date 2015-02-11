@@ -27,8 +27,6 @@
 /******************************************************/
 
 #include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 
 /******************************************************/
@@ -59,7 +57,7 @@ typedef enum tagZ80_RegName_e
     Z80_AF = 0,     /**< Accumulator and Flag register */
     Z80_BC,         /**< All purpose register */
     Z80_DE,         /**< All purpose register */
-    Z80_HL,         /**< Address access purpose register */
+    Z80_HL,         /**< All purpose register */
     Z80_SP,         /**< Stack Pointer register */
     Z80_PC,         /**< Program Pointer register */
     Z80_REG_NUM,    /**< Number of internal register */
@@ -117,11 +115,13 @@ typedef struct tagZ80_OpCode_t
 /** Initialize Z80 */
 extern void Z80_Initialize(void);
 
-/* Misc Contoll OpCode Callback */
-static void Z80_Execute_Illegal(Z80_OpCode_t* opcode);
+/* Misc/Contoll OpCode Callback */
+static void Z80_Execute_DoNothing(Z80_OpCode_t* opcode);
 static void Z80_Execute_NOP(Z80_OpCode_t* opcode);
 
 /* Load/Store/Move OpCode Callback */
+static void Z80_Execute_LD_Reg8_Reg8(Z80_OpCode_t* opcode);
+static void Z80_Execute_LD_Reg8_D8(Z80_OpCode_t* opcode);
 static void Z80_Execute_LD_Reg16_D16(Z80_OpCode_t* opcode);
 
 
@@ -135,32 +135,74 @@ static Z80_State_t Z80_State;
 /** Callback table for each OpCode */
 static Z80_OpCode_t const Z80_OpCode[] =
 {
-    {0x00, 1, "NOP",    Z80_NONE,   Z80_NONE,   Z80_Execute_NOP},
-    {0x01, 1, "LD",     Z80_BC,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+    {0x00, 1, "NOP",            Z80_NONE,   Z80_NONE,   Z80_Execute_NOP},
+    {0x01, 3, "LD BC, d16",     Z80_BC,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
 
-    {0x11, 1, "LD",     Z80_DE,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+    {0x06, 2, "LD B, d8",       Z80_B,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
 
-    {0x21, 1, "LD",     Z80_HL,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+    {0x0E, 2, "LD C, d8",       Z80_C,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
 
-    {0x31, 1, "LD",     Z80_SP,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+    {0x11, 3, "LD DE, d16",     Z80_DE,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
 
-    {0xD3, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0x16, 2, "LD D, d8",       Z80_D,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
 
-    {0xDB, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0x1E, 2, "LD E, d8",       Z80_E,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
 
-    {0xDD, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0x21, 3, "LD HL, d16",     Z80_HL,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+
+    {0x26, 2, "LD H, d8",       Z80_H,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
+
+    {0x2E, 2, "LD L, d8",       Z80_L,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
+
+    {0x31, 3, "LD SP, d16",     Z80_SP,     Z80_D16,    Z80_Execute_LD_Reg16_D16},
+
+    {0x3E, 2, "LD A, d8",       Z80_A,      Z80_D8,     Z80_Execute_LD_Reg8_D8},
+
+    {0x40, 2, "LD B, B",        Z80_B,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x41, 2, "LD B, C",        Z80_B,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x42, 2, "LD B, D",        Z80_B,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x43, 2, "LD B, E",        Z80_B,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x44, 2, "LD B, H",        Z80_B,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x45, 2, "LD B, L",        Z80_B,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x47, 2, "LD B, A",        Z80_B,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x50, 2, "LD D, B",        Z80_D,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x51, 2, "LD D, C",        Z80_D,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x52, 2, "LD D, D",        Z80_D,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x53, 2, "LD D, E",        Z80_D,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x54, 2, "LD D, H",        Z80_D,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x55, 2, "LD D, L",        Z80_D,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x57, 2, "LD D, A",        Z80_D,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x60, 2, "LD H, B",        Z80_H,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x61, 2, "LD H, C",        Z80_H,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x62, 2, "LD H, D",        Z80_H,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x63, 2, "LD H, E",        Z80_H,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x64, 2, "LD H, H",        Z80_H,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x65, 2, "LD H, L",        Z80_H,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x67, 2, "LD H, A",        Z80_H,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+
+
+    {0xD3, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
+
+    {0xDB, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
+
+    {0xDD, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
     
-    {0xE3, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
-    {0xE4, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xE3, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
+    {0xE4, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
 
-    {0xEB, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
-    {0xEC, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
-    {0xED, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xEB, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
+    {0xEC, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
+    {0xED, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
 
-    {0xF4, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xF4, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
 
-    {0xFC, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
-    {0xFD, 1, "-",      Z80_NONE,   Z80_NONE,   Z80_Execute_Illegal},
+    {0xFC, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
+    {0xFD, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
 };
 
 
@@ -176,12 +218,19 @@ void Z80_Initialize(void)
     }
 }
 
-static void Z80_Execute_Illegal(Z80_OpCode_t* opcode)
+
+/**
+ * OpCode which lock up the CPU
+ */
+static void Z80_Execute_DoNothing(Z80_OpCode_t* opcode)
 {
-    /* @todo define how to handle this one */
-    printf("Z80: Illegal instruction\n");
-    exit(1);
+    /**
+     * This opcode lock up the cpu
+     * If any register does not change, this opcode
+     * will be called over and over simulating a lock up
+     */
 }
+
 
 /**
  * OpCode: NOP
@@ -192,11 +241,36 @@ void Z80_Execute_NOP(Z80_OpCode_t* opcode)
     Z80_State.Reg[Z80_PC].UWord += 1;
 }
 
+
 /**
- * OpCode: LD BC,d16
- * OpCode: LD DE,d16
- * OpCode: LD HL,d16
- * OpCode: LD SP,d16
+ * OpCode: LD r,r
+ * where r can be A/B/C/D/E/H/L
+ * Size:1, Duration:4, ZNHC Flag:----
+ */
+static void Z80_Execute_LD_Reg8_Reg8(Z80_OpCode_t* opcode)
+{
+    uint8_t const d8 = Z80_State.Reg[opcode->RegSrc / BYTE_BY_WORD].UByte[opcode->RegSrc % BYTE_BY_WORD];
+    Z80_State.Reg[opcode->RegDst / BYTE_BY_WORD].UByte[opcode->RegDst % BYTE_BY_WORD] = d8;
+    Z80_State.Reg[Z80_PC].UWord += 1;
+}
+
+
+/**
+ * OpCode: LD r,d8
+ * where r can be A/B/C/D/E/H/L
+ * Size:2, Duration:8, ZNHC Flag:----
+ */
+static void Z80_Execute_LD_Reg8_D8(Z80_OpCode_t* opcode)
+{
+    uint8_t const d8 = Bus_Read(Z80_State.Reg[Z80_PC] + 1);
+    Z80_State.Reg[opcode->RegDst / BYTE_BY_WORD].UByte[opcode->RegDst % BYTE_BY_WORD] = d8;
+    Z80_State.Reg[Z80_PC].UWord += 2;
+}
+
+
+/**
+ * OpCode: LD rr,d16
+ * where rr can be BC/DE/HL/SP
  * Size:3, Duration:12, ZNHC Flag:----
  */
 static void Z80_Execute_LD_Reg16_D16(Z80_OpCode_t* opcode)
@@ -241,15 +315,6 @@ void Z80_Execute_INC B(Z80_OpCode_t* opcode)
  * Size:1, Duration:4, ZNHC Flag:Z1H-
  */
 void Z80_Execute_DEC B(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD B,d8(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -318,15 +383,6 @@ void Z80_Execute_DEC C(Z80_OpCode_t* opcode)
 }
 
 /**
- * OpCode: LD C,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD C,d8(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
  * OpCode: RRCA
  * Size:1, Duration:4, ZNHC Flag:000C
  */
@@ -377,15 +433,6 @@ void Z80_Execute_INC D(Z80_OpCode_t* opcode)
  * Size:1, Duration:4, ZNHC Flag:Z1H-
  */
 void Z80_Execute_DEC D(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD D,d8(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -454,15 +501,6 @@ void Z80_Execute_DEC E(Z80_OpCode_t* opcode)
 }
 
 /**
- * OpCode: LD E,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD E,d8(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
  * OpCode: RRA
  * Size:1, Duration:4, ZNHC Flag:000C
  */
@@ -513,15 +551,6 @@ void Z80_Execute_INC H(Z80_OpCode_t* opcode)
  * Size:1, Duration:4, ZNHC Flag:Z1H-
  */
 void Z80_Execute_DEC H(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD H,d8(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -585,15 +614,6 @@ void Z80_Execute_INC L(Z80_OpCode_t* opcode)
  * Size:1, Duration:4, ZNHC Flag:Z1H-
  */
 void Z80_Execute_DEC L(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD L,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD L,d8(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -726,15 +746,6 @@ void Z80_Execute_DEC A(Z80_OpCode_t* opcode)
 }
 
 /**
- * OpCode: LD A,d8
- * Size:2, Duration:8, ZNHC Flag:----
- */
-void Z80_Execute_LD A,d8(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
  * OpCode: CCF
  * Size:1, Duration:4, ZNHC Flag:-00C
  */
@@ -744,74 +755,12 @@ void Z80_Execute_CCF(Z80_OpCode_t* opcode)
 }
 
 4x 
-/**
- * OpCode: LD B,B
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,B(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,C
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,C(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,D
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,D(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,E
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,E(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,H
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,H(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,L
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,L(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
 
 /**
  * OpCode: LD B,(HL)
  * Size:1, Duration:8, ZNHC Flag:----
  */
 void Z80_Execute_LD B,(HL)(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD B,A
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD B,A(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -890,73 +839,10 @@ void Z80_Execute_LD C,A(Z80_OpCode_t* opcode)
 
 5x 
 /**
- * OpCode: LD D,B
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,B(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,C
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,C(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,D
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,D(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,E
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,E(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,H
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,H(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,L
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,L(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
  * OpCode: LD D,(HL)
  * Size:1, Duration:8, ZNHC Flag:----
  */
 void Z80_Execute_LD D,(HL)(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD D,A
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD D,A(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
@@ -1035,73 +921,10 @@ void Z80_Execute_LD E,A(Z80_OpCode_t* opcode)
 
 6x 
 /**
- * OpCode: LD H,B
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,B(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,C
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,C(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,D
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,D(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,E
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,E(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,H
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,H(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,L
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,L(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
  * OpCode: LD H,(HL)
  * Size:1, Duration:8, ZNHC Flag:----
  */
 void Z80_Execute_LD H,(HL)(Z80_OpCode_t* opcode)
-{
-    /** @todo */
-}
-
-/**
- * OpCode: LD H,A
- * Size:1, Duration:4, ZNHC Flag:----
- */
-void Z80_Execute_LD H,A(Z80_OpCode_t* opcode)
 {
     /** @todo */
 }
