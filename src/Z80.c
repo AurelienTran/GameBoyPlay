@@ -166,7 +166,14 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x45, 2, "LD B, L",        Z80_B,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
 
     {0x47, 2, "LD B, A",        Z80_B,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+    {0x48, 2, "LD C, B",        Z80_C,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x49, 2, "LD C, C",        Z80_C,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x4A, 2, "LD C, D",        Z80_C,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x4B, 2, "LD C, E",        Z80_C,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x4C, 2, "LD C, H",        Z80_C,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x4D, 2, "LD C, L",        Z80_C,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
 
+    {0x4F, 2, "LD C, A",        Z80_C,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
     {0x50, 2, "LD D, B",        Z80_D,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
     {0x51, 2, "LD D, C",        Z80_D,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
     {0x52, 2, "LD D, D",        Z80_D,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
@@ -175,7 +182,14 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x55, 2, "LD D, L",        Z80_D,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
 
     {0x57, 2, "LD D, A",        Z80_D,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+    {0x58, 2, "LD E, B",        Z80_E,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x59, 2, "LD E, C",        Z80_E,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x5A, 2, "LD E, D",        Z80_E,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x5B, 2, "LD E, E",        Z80_E,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x5C, 2, "LD E, H",        Z80_E,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x5D, 2, "LD E, L",        Z80_E,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
 
+    {0x5F, 2, "LD E, A",        Z80_E,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
     {0x60, 2, "LD H, B",        Z80_H,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
     {0x61, 2, "LD H, C",        Z80_H,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
     {0x62, 2, "LD H, D",        Z80_H,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
@@ -184,7 +198,23 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x65, 2, "LD H, L",        Z80_H,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
 
     {0x67, 2, "LD H, A",        Z80_H,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+    {0x68, 2, "LD L, B",        Z80_L,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x69, 2, "LD L, C",        Z80_L,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x6A, 2, "LD L, D",        Z80_L,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x6B, 2, "LD L, E",        Z80_L,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x6C, 2, "LD L, H",        Z80_L,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x6D, 2, "LD L, L",        Z80_L,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
 
+    {0x6F, 2, "LD L, A",        Z80_L,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x78, 2, "LD A, B",        Z80_A,      Z80_B,      Z80_Execute_LD_Reg8_Reg8},
+    {0x79, 2, "LD A, C",        Z80_A,      Z80_C,      Z80_Execute_LD_Reg8_Reg8},
+    {0x7A, 2, "LD A, D",        Z80_A,      Z80_D,      Z80_Execute_LD_Reg8_Reg8},
+    {0x7B, 2, "LD A, E",        Z80_A,      Z80_E,      Z80_Execute_LD_Reg8_Reg8},
+    {0x7C, 2, "LD A, H",        Z80_A,      Z80_H,      Z80_Execute_LD_Reg8_Reg8},
+    {0x7D, 2, "LD A, L",        Z80_A,      Z80_L,      Z80_Execute_LD_Reg8_Reg8},
+
+    {0x7F, 2, "LD A, A",        Z80_A,      Z80_A,      Z80_Execute_LD_Reg8_Reg8},
 
     {0xD3, 1, "-",              Z80_NONE,   Z80_NONE,   Z80_Execute_DoNothing},
 
