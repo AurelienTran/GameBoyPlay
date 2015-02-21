@@ -2,10 +2,10 @@ TARGET=PlayEmulator
 SOURCE=$(wildcard src/*.c)
 OBJECT=$(patsubst %.c, %.o, $(SOURCE))
 
-CFLAGS= -std=c99 -Wall
+CFLAGS= -std=c99 -Wall -g -Isrc
 
 check: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) rom/bootstrap.bin
 
 all: $(TARGET)
 
