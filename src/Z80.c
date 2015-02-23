@@ -87,16 +87,27 @@ typedef enum tagZ80_RegName_e
     Z80_PC,         /**< Program Pointer register */
     Z80_REG_NUM,    /**< Number of internal register */
 
-    /* 8 bit Register Name */
-    Z80_A = 0,      /**< Accumulator register */
-    Z80_F,          /**< Flag register */
-    Z80_B,          /**< All purpose register */
+    /* 8 bit Register Name (little endian) */
+    Z80_F = 0,      /**< Flag register */
+    Z80_A,          /**< Accumulator register */
     Z80_C,          /**< All purpose register */
-    Z80_D,          /**< All purpose register */
+    Z80_B,          /**< All purpose register */
     Z80_E,          /**< All purpose register */
-    Z80_H,          /**< All purpose register */
+    Z80_D,          /**< All purpose register */
     Z80_L,          /**< All purpose register */
+    Z80_H           /**< All purpose register */
 } Z80_RegName_e;
+
+/** Z80 Flag name */
+typedef enum tagZ80_FlagName_e
+{
+    /* Flag */
+    Z80_F_Z    = 0x80,  /**< Zero Flag */
+    Z80_F_N    = 0x40,  /**< Substract Flag */
+    Z80_F_H    = 0x20,  /**< Half Carry Flag */
+    Z80_F_C    = 0x10,  /**< Carry Flag */
+    Z80_F_NONE = 0x00,  /**< No flag */
+} Z80_FlagName_e;
 
 /** Z80 State */
 typedef struct tagZ80_State_t
@@ -133,8 +144,11 @@ typedef struct tagZ80_OpCode_t
 /** @todo replace this function by the real one */
 static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode);
 
-/* 16 bit Load/Move/Store Command*/
+/* 16 bit Load/Move/Store Command */
 static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode);
+
+/* 8 bit Arithmetic/Logical Command */
+static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode);
 
 /******************************************************/
 /* Variable                                           */
@@ -314,14 +328,14 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xA5, 1, "AND L",         Z80_L,    0,        Z80_Execute_Unimplemented},
     {0xA6, 1, "AND (HL)",      Z80_HL,   0,        Z80_Execute_Unimplemented},
     {0xA7, 1, "AND A",         Z80_A,    0,        Z80_Execute_Unimplemented},
-    {0xA8, 1, "XOR B",         Z80_B,    0,        Z80_Execute_Unimplemented},
-    {0xA9, 1, "XOR C",         Z80_C,    0,        Z80_Execute_Unimplemented},
-    {0xAA, 1, "XOR D",         Z80_D,    0,        Z80_Execute_Unimplemented},
-    {0xAB, 1, "XOR E",         Z80_E,    0,        Z80_Execute_Unimplemented},
-    {0xAC, 1, "XOR H",         Z80_H,    0,        Z80_Execute_Unimplemented},
-    {0xAD, 1, "XOR L",         Z80_L,    0,        Z80_Execute_Unimplemented},
+    {0xA8, 1, "XOR B\n",       Z80_B,    0,        Z80_Execute_XOR_R},
+    {0xA9, 1, "XOR C\n",       Z80_C,    0,        Z80_Execute_XOR_R},
+    {0xAA, 1, "XOR D\n",       Z80_D,    0,        Z80_Execute_XOR_R},
+    {0xAB, 1, "XOR E\n",       Z80_E,    0,        Z80_Execute_XOR_R},
+    {0xAC, 1, "XOR H\n",       Z80_H,    0,        Z80_Execute_XOR_R},
+    {0xAD, 1, "XOR L\n",       Z80_L,    0,        Z80_Execute_XOR_R},
     {0xAE, 1, "XOR (HL)",      Z80_HL,   0,        Z80_Execute_Unimplemented},
-    {0xAF, 1, "XOR A",         Z80_A,    0,        Z80_Execute_Unimplemented},
+    {0xAF, 1, "XOR A\n",       Z80_A,    0,        Z80_Execute_XOR_R},
     {0xB0, 1, "OR B",          Z80_B,    0,        Z80_Execute_Unimplemented},
     {0xB1, 1, "OR C",          Z80_C,    0,        Z80_Execute_Unimplemented},
     {0xB2, 1, "OR D",          Z80_D,    0,        Z80_Execute_Unimplemented},
@@ -705,7 +719,7 @@ void Z80_Print(void)
  */
 static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode)
 {
-    LOG_ERROR("Implemented Opcode 0x%02X: %s\n", opcode->Value, opcode->Name);
+    LOG_ERROR("Unimplemented Opcode 0x%02X: %s\n", opcode->Value, opcode->Name);
     assert(0);
     return 0;
 }
@@ -727,10 +741,34 @@ static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode)
     /* Execute the command */
     Z80_REG16(opcode->Param0)->Byte[0].UByte = data0;
     Z80_REG16(opcode->Param0)->Byte[1].UByte = data1;
-    Z80_REG16(Z80_PC)->UWord += 3;
+    Z80_REG16(Z80_PC)->UWord += opcode->Size;
 
     return 12;
 }
 
 
+/**
+ * OpCode: XOR R
+ * Size:1, Duration:4, ZNHC Flag:Z000
+ */
+static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode)
+{
+    LOG_DEBUG(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const dataA = Z80_REG8(Z80_A)->UByte;
+    uint8_t const dataR = Z80_REG8(opcode->Param0)->UByte;
+    uint8_t const result = dataA ^ dataR;
+    Z80_REG8(Z80_A)->UByte = result;
+    Z80_REG16(Z80_PC)->UWord += opcode->Size;
+
+    /* Set up Flag */
+    Z80_REG8(Z80_F)->UByte = Z80_F_NONE;
+    if(result == 0)
+    {
+        Z80_REG8(Z80_F)->UByte = Z80_F_Z;
+    }
+
+    return 4;
+}
 
