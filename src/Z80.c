@@ -55,6 +55,18 @@
  */
 #define CONCAT(data0, data1) ((data1) << 8 | (data0))
 
+/**
+ * Set a Flag
+ * @param flag The Z80_FlagName_e flag
+ */
+#define Z80_FLAG_SET(flag) do{ Z80_REG8(Z80_F)->UByte |= (flag); } while(0)
+
+/**
+ * Clear a Flag
+ * @param flag The Z80_FlagName_e flag
+ */
+#define Z80_FLAG_CLEAR(flag) do{ Z80_REG8(Z80_F)->UByte &= ~(flag); } while(0)
+
 
 /******************************************************/
 /* Type                                               */
@@ -101,12 +113,12 @@ typedef enum tagZ80_RegName_e
 /** Z80 Flag name */
 typedef enum tagZ80_FlagName_e
 {
-    /* Flag */
     Z80_F_Z    = 0x80,  /**< Zero Flag */
     Z80_F_N    = 0x40,  /**< Substract Flag */
     Z80_F_H    = 0x20,  /**< Half Carry Flag */
     Z80_F_C    = 0x10,  /**< Carry Flag */
-    Z80_F_NONE = 0x00,  /**< No flag */
+    Z80_F_ALL  = 0xF0,  /**< All flag */
+    Z80_F_NONE = 0x00   /**< No flag */
 } Z80_FlagName_e;
 
 /** Z80 State */
@@ -144,11 +156,20 @@ typedef struct tagZ80_OpCode_t
 /** @todo replace this function by the real one */
 static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode);
 
+/* Misc/Control Command */
+static int Z80_Execute_PREFIX_CB(Z80_OpCode_t const * const opcode);
+
+/* 8 bit Load/Move/Store Command */
+static int Z80_Execute_LDD_pRR_R(Z80_OpCode_t const * const opcode);
+
 /* 16 bit Load/Move/Store Command */
 static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode);
 
 /* 8 bit Arithmetic/Logical Command */
 static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode);
+
+/* 8 bit Rotation/Shift/Bit Command */
+static int Z80_Execute_BIT_N_R(Z80_OpCode_t const * const opcode);
 
 /******************************************************/
 /* Variable                                           */
@@ -210,7 +231,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x2F, 1, "CPL",           0,        0,        Z80_Execute_Unimplemented},
     {0x30, 2, "JR NC,r8",      0,        0,        Z80_Execute_Unimplemented},
     {0x31, 3, "LD SP,0x%04X\n",Z80_SP,   0,        Z80_Execute_LD_RR_NN},
-    {0x32, 1, "LD (HL-),A",    Z80_HL,   Z80_A,    Z80_Execute_Unimplemented},
+    {0x32, 1, "LD (HL-),A\n",  Z80_HL,   Z80_A,    Z80_Execute_LDD_pRR_R},
     {0x33, 1, "INC SP",        Z80_SP,   0,        Z80_Execute_Unimplemented},
     {0x34, 1, "INC (HL)",      Z80_HL,   0,        Z80_Execute_Unimplemented},
     {0x35, 1, "DEC (HL)",      Z80_HL,   0,        Z80_Execute_Unimplemented},
@@ -363,7 +384,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xC8, 1, "RET Z",         0,        0,        Z80_Execute_Unimplemented},
     {0xC9, 1, "RET",           0,        0,        Z80_Execute_Unimplemented},
     {0xCA, 3, "JP Z,a16",      0,        0,        Z80_Execute_Unimplemented},
-    {0xCB, 1, "PREFIX CB",     0,        0,        Z80_Execute_Unimplemented},
+    {0xCB, 1, "PREFIX CB\n",   0,        0,        Z80_Execute_PREFIX_CB},
     {0xCC, 3, "CALL Z,a16",    0,        0,        Z80_Execute_Unimplemented},
     {0xCD, 3, "CALL a16",      0,        0,        Z80_Execute_Unimplemented},
     {0xCE, 2, "ADC A,d8",      Z80_A,    0,        Z80_Execute_Unimplemented},
@@ -484,70 +505,70 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x3D, 2, "SRL L",         Z80_L,    0,        Z80_Execute_Unimplemented},
     {0x3E, 2, "SRL (HL)",      Z80_HL,   0,        Z80_Execute_Unimplemented},
     {0x3F, 2, "SRL A",         Z80_A,    0,        Z80_Execute_Unimplemented},
-    {0x40, 2, "BIT 0,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x41, 2, "BIT 0,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x42, 2, "BIT 0,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x43, 2, "BIT 0,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x44, 2, "BIT 0,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x45, 2, "BIT 0,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
+    {0x40, 2, "BIT 0,B\n",     0,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x41, 2, "BIT 0,C\n",     0,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x42, 2, "BIT 0,D\n",     0,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x43, 2, "BIT 0,E\n",     0,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x44, 2, "BIT 0,H\n",     0,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x45, 2, "BIT 0,L\n",     0,        Z80_L,    Z80_Execute_BIT_N_R},
     {0x46, 2, "BIT 0,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x47, 2, "BIT 0,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x48, 2, "BIT 1,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x49, 2, "BIT 1,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x4A, 2, "BIT 1,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x4B, 2, "BIT 1,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x4C, 2, "BIT 1,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x4D, 2, "BIT 1,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x4E, 2, "BIT 1,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x4F, 2, "BIT 1,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x50, 2, "BIT 2,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x51, 2, "BIT 2,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x52, 2, "BIT 2,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x53, 2, "BIT 2,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x54, 2, "BIT 2,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x55, 2, "BIT 2,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x56, 2, "BIT 2,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x57, 2, "BIT 2,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x58, 2, "BIT 3,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x59, 2, "BIT 3,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x5A, 2, "BIT 3,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x5B, 2, "BIT 3,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x5C, 2, "BIT 3,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x5D, 2, "BIT 3,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x5E, 2, "BIT 3,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x5F, 2, "BIT 3,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x60, 2, "BIT 4,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x61, 2, "BIT 4,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x62, 2, "BIT 4,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x63, 2, "BIT 4,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x64, 2, "BIT 4,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x65, 2, "BIT 4,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x66, 2, "BIT 4,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x67, 2, "BIT 4,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x68, 2, "BIT 5,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x69, 2, "BIT 5,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x6A, 2, "BIT 5,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x6B, 2, "BIT 5,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x6C, 2, "BIT 5,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x6D, 2, "BIT 5,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x6E, 2, "BIT 5,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x6F, 2, "BIT 5,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x70, 2, "BIT 6,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x71, 2, "BIT 6,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x72, 2, "BIT 6,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x73, 2, "BIT 6,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x74, 2, "BIT 6,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x75, 2, "BIT 6,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x76, 2, "BIT 6,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x77, 2, "BIT 6,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
-    {0x78, 2, "BIT 7,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
-    {0x79, 2, "BIT 7,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
-    {0x7A, 2, "BIT 7,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
-    {0x7B, 2, "BIT 7,E",       0,        Z80_E,    Z80_Execute_Unimplemented},
-    {0x7C, 2, "BIT 7,H",       0,        Z80_H,    Z80_Execute_Unimplemented},
-    {0x7D, 2, "BIT 7,L",       0,        Z80_L,    Z80_Execute_Unimplemented},
-    {0x7E, 2, "BIT 7,(HL)",    0,        Z80_HL,   Z80_Execute_Unimplemented},
-    {0x7F, 2, "BIT 7,A",       0,        Z80_A,    Z80_Execute_Unimplemented},
+    {0x47, 2, "BIT 0,A\n",     0,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x48, 2, "BIT 1,B\n",     1,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x49, 2, "BIT 1,C\n",     1,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x4A, 2, "BIT 1,D\n",     1,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x4B, 2, "BIT 1,E\n",     1,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x4C, 2, "BIT 1,H\n",     1,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x4D, 2, "BIT 1,L\n",     1,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x4E, 2, "BIT 1,(HL)",    1,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x4F, 2, "BIT 1,A\n",     1,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x50, 2, "BIT 2,B\n",     2,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x51, 2, "BIT 2,C\n",     2,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x52, 2, "BIT 2,D\n",     2,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x53, 2, "BIT 2,E\n",     2,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x54, 2, "BIT 2,H\n",     2,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x55, 2, "BIT 2,L\n",     2,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x56, 2, "BIT 2,(HL)",    2,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x57, 2, "BIT 2,A\n",     2,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x58, 2, "BIT 3,B\n",     3,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x59, 2, "BIT 3,C\n",     3,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x5A, 2, "BIT 3,D\n",     3,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x5B, 2, "BIT 3,E\n",     3,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x5C, 2, "BIT 3,H\n",     3,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x5D, 2, "BIT 3,L\n",     3,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x5E, 2, "BIT 3,(HL)",    3,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x5F, 2, "BIT 3,A\n",     3,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x60, 2, "BIT 4,B\n",     4,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x61, 2, "BIT 4,C\n",     4,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x62, 2, "BIT 4,D\n",     4,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x63, 2, "BIT 4,E\n",     4,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x64, 2, "BIT 4,H\n",     4,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x65, 2, "BIT 4,L\n",     4,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x66, 2, "BIT 4,(HL)",    4,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x67, 2, "BIT 4,A\n",     4,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x68, 2, "BIT 5,B\n",     5,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x69, 2, "BIT 5,C\n",     5,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x6A, 2, "BIT 5,D\n",     5,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x6B, 2, "BIT 5,E\n",     5,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x6C, 2, "BIT 5,H\n",     5,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x6D, 2, "BIT 5,L\n",     5,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x6E, 2, "BIT 5,(HL)",    5,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x6F, 2, "BIT 5,A\n",     5,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x70, 2, "BIT 6,B\n",     6,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x71, 2, "BIT 6,C\n",     6,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x72, 2, "BIT 6,D\n",     6,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x73, 2, "BIT 6,E\n",     6,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x74, 2, "BIT 6,H\n",     6,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x75, 2, "BIT 6,L\n",     6,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x76, 2, "BIT 6,(HL)",    6,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x77, 2, "BIT 6,A\n",     6,        Z80_A,    Z80_Execute_BIT_N_R},
+    {0x78, 2, "BIT 7,B\n",     7,        Z80_B,    Z80_Execute_BIT_N_R},
+    {0x79, 2, "BIT 7,C\n",     7,        Z80_C,    Z80_Execute_BIT_N_R},
+    {0x7A, 2, "BIT 7,D\n",     7,        Z80_D,    Z80_Execute_BIT_N_R},
+    {0x7B, 2, "BIT 7,E\n",     7,        Z80_E,    Z80_Execute_BIT_N_R},
+    {0x7C, 2, "BIT 7,H\n",     7,        Z80_H,    Z80_Execute_BIT_N_R},
+    {0x7D, 2, "BIT 7,L\n",     7,        Z80_L,    Z80_Execute_BIT_N_R},
+    {0x7E, 2, "BIT 7,(HL)",    7,        Z80_HL,   Z80_Execute_Unimplemented},
+    {0x7F, 2, "BIT 7,A\n",     7,        Z80_A,    Z80_Execute_BIT_N_R},
     {0x80, 2, "RES 0,B",       0,        Z80_B,    Z80_Execute_Unimplemented},
     {0x81, 2, "RES 0,C",       0,        Z80_C,    Z80_Execute_Unimplemented},
     {0x82, 2, "RES 0,D",       0,        Z80_D,    Z80_Execute_Unimplemented},
@@ -704,6 +725,7 @@ void Z80_Run(void)
 
 void Z80_Print(void)
 {
+    LOG_INFO("=====================\n");
     LOG_INFO("Z80 Register:\n");
     LOG_INFO("AF = 0x%04X\n", Z80_REG16(Z80_AF)->UWord);
     LOG_INFO("BC = 0x%04X\n", Z80_REG16(Z80_BC)->UWord);
@@ -711,6 +733,7 @@ void Z80_Print(void)
     LOG_INFO("HL = 0x%04X\n", Z80_REG16(Z80_HL)->UWord);
     LOG_INFO("SP = 0x%04X\n", Z80_REG16(Z80_SP)->UWord);
     LOG_INFO("PC = 0x%04X\n", Z80_REG16(Z80_PC)->UWord);
+    LOG_INFO("=====================\n");
 }
 
 /**
@@ -725,6 +748,54 @@ static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode)
 }
 
 
+/******************************************************/
+/* Misc/Control Command                               */
+/******************************************************/
+
+/**
+ * Handle OpCode begining by 0xCB
+ */
+static int Z80_Execute_PREFIX_CB(Z80_OpCode_t const * const opcode)
+{
+    /* Get instruction */
+    uint16_t const pc = Z80_REG16(Z80_PC)->UWord;
+    uint8_t const data = Memory_Read(pc + 1);
+    Z80_OpCode_t const * opcode_prefix = &Z80_OpCode_Prefix[data];
+
+    /* Execute instruction */
+    return opcode_prefix->ExecuteCallback(opcode_prefix);
+}
+
+
+/******************************************************/
+/* 8 bit Load/Move/Store Command                      */
+/******************************************************/
+
+/**
+ * OpCode: LD (RR-),R
+ * Size:1, Duration:8, ZNHC Flag:----
+ */
+static int Z80_Execute_LDD_pRR_R(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = Z80_REG8(opcode->Param1)->UByte;
+    uint16_t const addr = Z80_REG16(opcode->Param0)->UWord;
+    Memory_Write(addr, data);
+    Z80_REG16(opcode->Param0)->UWord = addr - 1;
+
+    /* Update PC */
+    Z80_REG16(Z80_PC)->UWord += opcode->Size;
+
+    return 8;
+}
+
+
+/******************************************************/
+/* 16 bit Load/Move/Store Command                     */
+/******************************************************/
+
 /**
  * OpCode: LD RR,d16
  * Size:3, Duration:12, ZNHC Flag:----
@@ -736,16 +807,22 @@ static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode)
     uint8_t const data0 = Memory_Read(pc + 1);
     uint8_t const data1 = Memory_Read(pc + 2);
 
-    LOG_DEBUG(opcode->Name, CONCAT(data0, data1));
+    LOG_INFO(opcode->Name, CONCAT(data0, data1));
 
     /* Execute the command */
     Z80_REG16(opcode->Param0)->Byte[0].UByte = data0;
     Z80_REG16(opcode->Param0)->Byte[1].UByte = data1;
+
+    /* Update PC */
     Z80_REG16(Z80_PC)->UWord += opcode->Size;
 
     return 12;
 }
 
+
+/******************************************************/
+/* 8 bit Arithmetic/Logical Command                   */
+/******************************************************/
 
 /**
  * OpCode: XOR R
@@ -753,22 +830,57 @@ static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode)
  */
 static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode)
 {
-    LOG_DEBUG(opcode->Name);
+    LOG_INFO(opcode->Name);
 
     /* Execute the command */
     uint8_t const dataA = Z80_REG8(Z80_A)->UByte;
     uint8_t const dataR = Z80_REG8(opcode->Param0)->UByte;
     uint8_t const result = dataA ^ dataR;
     Z80_REG8(Z80_A)->UByte = result;
-    Z80_REG16(Z80_PC)->UWord += opcode->Size;
 
     /* Set up Flag */
-    Z80_REG8(Z80_F)->UByte = Z80_F_NONE;
+    Z80_FLAG_CLEAR(Z80_F_ALL);
     if(result == 0)
     {
-        Z80_REG8(Z80_F)->UByte = Z80_F_Z;
+        Z80_FLAG_SET(Z80_F_Z);
     }
+
+    /* Update PC */
+    Z80_REG16(Z80_PC)->UWord += opcode->Size;
 
     return 4;
 }
+
+
+/******************************************************/
+/* 8 bit Rotation/Shift/Bit Command                   */
+/******************************************************/
+
+/**
+ * OpCode: BIT N,R
+ * Size:2, Duration:8, ZNHC Flag:Z01-
+ */
+static int Z80_Execute_BIT_N_R(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint32_t const bit = opcode->Param0;
+    uint8_t const data = Z80_REG8(opcode->Param1)->UByte;
+    uint8_t const result = data & (1 << bit);
+
+    /* Set up Flag */
+    Z80_FLAG_CLEAR(Z80_F_N | Z80_F_Z);
+    Z80_FLAG_SET(Z80_F_H);
+    if(result == 0)
+    {
+        Z80_FLAG_SET(Z80_F_Z);
+    }
+
+    /* Update PC */
+    Z80_REG16(Z80_PC)->UWord += opcode->Size;
+
+    return 8;
+}
+
 
