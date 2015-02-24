@@ -64,5 +64,6 @@ void Log_Printf(char *lvl, char *file, int line, char *fmt, ...)
     fprintf(stdout, "[%s][%s:%d] ", lvl, file, line);
     vfprintf(stdout, fmt, args);
     va_end(args);
+    fflush(stdout);
 }
 
