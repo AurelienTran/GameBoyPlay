@@ -70,9 +70,9 @@
 /**
  * Check flag
  * @param mask The mask bitmap to apply to flag before comparison
- * @param result The comparison bitmap to check
+ * @param compare The comparison bitmap to check
  */
-#define Z80_FLAG_CHECK(mask, result) ((Z80_REG8(Z80_R_F)->UByte & mask) == result)
+#define Z80_FLAG_CHECK(mask, compare) ((Z80_REG8(Z80_R_F)->UByte & mask) == compare)
 
 
 /******************************************************/
@@ -167,10 +167,8 @@ typedef struct tagZ80_OpCode_t
  */
 static inline uint8_t Z80_ReadPc(void);
 
-/** @todo replace this function by the real one */
-static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode);
-
 /* Misc/Control Command */
+static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_PREFIX_CB(Z80_OpCode_t const * const opcode);
 
 /* Jump/Call Command */
@@ -768,6 +766,7 @@ static inline uint8_t Z80_ReadPc(void)
 /**
  * OpCode: XXXXXX
  * Size:X, Duration:X, ZNHC Flag:XXXX
+ * @todo Delete this function when all opcode implemented
  */
 static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode)
 {
@@ -812,8 +811,8 @@ static int Z80_Execute_JR_F_N(Z80_OpCode_t const * const opcode)
 
     /* Execute the command */
     uint8_t mask = opcode->Param0;
-    uint8_t result = opcode->Param1;
-    if(Z80_FLAG_CHECK(mask, result))
+    uint8_t compare = opcode->Param1;
+    if(Z80_FLAG_CHECK(mask, compare))
     {
         Z80_REG16(Z80_R_PC)->UWord += data;
         return 12;
@@ -889,7 +888,7 @@ static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode)
 
     /* Set up Flag */
     Z80_FLAG_CLEAR(Z80_F_ALL);
-    if(result == 0)
+    if(result == 0x00)
     {
         Z80_FLAG_SET(Z80_F_Z);
     }
@@ -913,12 +912,12 @@ static int Z80_Execute_BIT_N_R(Z80_OpCode_t const * const opcode)
     /* Execute the command */
     uint32_t const bit = opcode->Param0;
     uint8_t const data = Z80_REG8(opcode->Param1)->UByte;
-    uint8_t const result = data & (1 << bit);
+    uint8_t const result = data & (0x01 << bit);
 
     /* Set up Flag */
     Z80_FLAG_CLEAR(Z80_F_N | Z80_F_Z);
     Z80_FLAG_SET(Z80_F_H);
-    if(result == 0)
+    if(result == 0x00)
     {
         Z80_FLAG_SET(Z80_F_Z);
     }
