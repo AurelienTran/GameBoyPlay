@@ -177,12 +177,14 @@ static int Z80_Execute_JR_F_N(Z80_OpCode_t const * const opcode);
 /* 8 bit Load/Move/Store Command */
 static int Z80_Execute_LD_R_N(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_LD_pR_R(Z80_OpCode_t const * const opcode);
+static int Z80_Execute_LD_pRR_R(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_LDD_pRR_R(Z80_OpCode_t const * const opcode);
 
 /* 16 bit Load/Move/Store Command */
 static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode);
 
 /* 8 bit Arithmetic/Logical Command */
+static int Z80_Execute_INC_R(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode);
 
 /* 8 bit Rotation/Shift/Bit Command */
@@ -201,9 +203,9 @@ static Z80_OpCode_t const Z80_OpCode[] =
 {
     {0x00, 1, "NOP",                0,        0,        Z80_Execute_Unimplemented},
     {0x01, 3, "LD BC,0x%04X\n",     Z80_R_BC, 0,        Z80_Execute_LD_RR_NN},
-    {0x02, 1, "LD (BC),A",          Z80_R_BC, Z80_R_A,  Z80_Execute_Unimplemented},
+    {0x02, 1, "LD (BC),A\n",        Z80_R_BC, Z80_R_A,  Z80_Execute_LD_pRR_R},
     {0x03, 1, "INC BC",             Z80_R_BC, 0,        Z80_Execute_Unimplemented},
-    {0x04, 1, "INC B",              Z80_R_B,  0,        Z80_Execute_Unimplemented},
+    {0x04, 1, "INC B\n",            Z80_R_B,  0,        Z80_Execute_INC_R},
     {0x05, 1, "DEC B",              Z80_R_B,  0,        Z80_Execute_Unimplemented},
     {0x06, 2, "LD B,0x%02X\n",      Z80_R_B,  0,        Z80_Execute_LD_R_N},
     {0x07, 1, "RLCA",               0,        0,        Z80_Execute_Unimplemented},
@@ -211,15 +213,15 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x09, 1, "ADD HL,BC",          Z80_R_HL, Z80_R_BC, Z80_Execute_Unimplemented},
     {0x0A, 1, "LD A,(BC)",          Z80_R_A,  Z80_R_BC, Z80_Execute_Unimplemented},
     {0x0B, 1, "DEC BC",             Z80_R_BC, 0,        Z80_Execute_Unimplemented},
-    {0x0C, 1, "INC C",              Z80_R_C,  0,        Z80_Execute_Unimplemented},
+    {0x0C, 1, "INC C\n",            Z80_R_C,  0,        Z80_Execute_INC_R},
     {0x0D, 1, "DEC C",              Z80_R_C,  0,        Z80_Execute_Unimplemented},
     {0x0E, 2, "LD C,0x%02X\n",      Z80_R_C,  0,        Z80_Execute_LD_R_N},
     {0x0F, 1, "RRCA",               0,        0,        Z80_Execute_Unimplemented},
     {0x10, 2, "STOP",               0,        0,        Z80_Execute_Unimplemented},
     {0x11, 3, "LD DE,0x%04X\n",     Z80_R_DE, 0,        Z80_Execute_LD_RR_NN},
-    {0x12, 1, "LD (DE),A",          Z80_R_DE, Z80_R_A,  Z80_Execute_Unimplemented},
+    {0x12, 1, "LD (DE),A\n",        Z80_R_DE, Z80_R_A,  Z80_Execute_LD_pRR_R},
     {0x13, 1, "INC DE",             Z80_R_DE, 0,        Z80_Execute_Unimplemented},
-    {0x14, 1, "INC D",              Z80_R_D,  0,        Z80_Execute_Unimplemented},
+    {0x14, 1, "INC D\n",            Z80_R_D,  0,        Z80_Execute_INC_R},
     {0x15, 1, "DEC D",              Z80_R_D,  0,        Z80_Execute_Unimplemented},
     {0x16, 2, "LD D,0x%02X\n",      Z80_R_D,  0,        Z80_Execute_LD_R_N},
     {0x17, 1, "RLA",                0,        0,        Z80_Execute_Unimplemented},
@@ -227,7 +229,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x19, 1, "ADD HL,DE",          Z80_R_HL, Z80_R_DE, Z80_Execute_Unimplemented},
     {0x1A, 1, "LD A,(DE)",          Z80_R_A,  Z80_R_DE, Z80_Execute_Unimplemented},
     {0x1B, 1, "DEC DE",             Z80_R_DE, 0,        Z80_Execute_Unimplemented},
-    {0x1C, 1, "INC E",              Z80_R_E,  0,        Z80_Execute_Unimplemented},
+    {0x1C, 1, "INC E\n",            Z80_R_E,  0,        Z80_Execute_INC_R},
     {0x1D, 1, "DEC E",              Z80_R_E,  0,        Z80_Execute_Unimplemented},
     {0x1E, 2, "LD E,0x%02X\n",      Z80_R_E,  0,        Z80_Execute_LD_R_N},
     {0x1F, 1, "RRA",                0,        0,        Z80_Execute_Unimplemented},
@@ -235,7 +237,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x21, 3, "LD HL,0x%04X\n",     Z80_R_HL, 0,        Z80_Execute_LD_RR_NN},
     {0x22, 1, "LD (HL+),A",         Z80_R_HL, Z80_R_A,  Z80_Execute_Unimplemented},
     {0x23, 1, "INC HL",             Z80_R_HL, 0,        Z80_Execute_Unimplemented},
-    {0x24, 1, "INC H",              Z80_R_H,  0,        Z80_Execute_Unimplemented},
+    {0x24, 1, "INC H\n",            Z80_R_H,  0,        Z80_Execute_INC_R},
     {0x25, 1, "DEC H",              Z80_R_H,  0,        Z80_Execute_Unimplemented},
     {0x26, 2, "LD H,0x%02X\n",      Z80_R_H,  0,        Z80_Execute_LD_R_N},
     {0x27, 1, "DAA",                0,        0,        Z80_Execute_Unimplemented},
@@ -243,7 +245,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x29, 1, "ADD HL,HL",          Z80_R_HL, Z80_R_HL, Z80_Execute_Unimplemented},
     {0x2A, 1, "LD A,(HL+)",         Z80_R_A,  Z80_R_HL, Z80_Execute_Unimplemented},
     {0x2B, 1, "DEC HL",             Z80_R_HL, 0,        Z80_Execute_Unimplemented},
-    {0x2C, 1, "INC L",              Z80_R_L,  0,        Z80_Execute_Unimplemented},
+    {0x2C, 1, "INC L\n",            Z80_R_L,  0,        Z80_Execute_INC_R},
     {0x2D, 1, "DEC L",              Z80_R_L,  0,        Z80_Execute_Unimplemented},
     {0x2E, 2, "LD L,0x%02X\n",      Z80_R_L,  0,        Z80_Execute_LD_R_N},
     {0x2F, 1, "CPL",                0,        0,        Z80_Execute_Unimplemented},
@@ -259,7 +261,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x39, 1, "ADD HL,SP",          Z80_R_HL, Z80_R_SP, Z80_Execute_Unimplemented},
     {0x3A, 1, "LD A,(HL-)",         Z80_R_A,  Z80_R_HL, Z80_Execute_Unimplemented},
     {0x3B, 1, "DEC SP",             Z80_R_SP, 0,        Z80_Execute_Unimplemented},
-    {0x3C, 1, "INC A",              Z80_R_A,  0,        Z80_Execute_Unimplemented},
+    {0x3C, 1, "INC A\n",            Z80_R_A,  0,        Z80_Execute_INC_R},
     {0x3D, 1, "DEC A",              Z80_R_A,  0,        Z80_Execute_Unimplemented},
     {0x3E, 2, "LD A,0x%02X\n",      Z80_R_A,  0,        Z80_Execute_LD_R_N},
     {0x3F, 1, "CCF",                0,        0,        Z80_Execute_Unimplemented},
@@ -311,14 +313,14 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0x6D, 1, "LD L,L",             Z80_R_L,  Z80_R_L,  Z80_Execute_Unimplemented},
     {0x6E, 1, "LD L,(HL)",          Z80_R_L,  Z80_R_HL, Z80_Execute_Unimplemented},
     {0x6F, 1, "LD L,A",             Z80_R_L,  Z80_R_A,  Z80_Execute_Unimplemented},
-    {0x70, 1, "LD (HL),B",          Z80_R_HL, Z80_R_B,  Z80_Execute_Unimplemented},
-    {0x71, 1, "LD (HL),C",          Z80_R_HL, Z80_R_C,  Z80_Execute_Unimplemented},
-    {0x72, 1, "LD (HL),D",          Z80_R_HL, Z80_R_D,  Z80_Execute_Unimplemented},
-    {0x73, 1, "LD (HL),E",          Z80_R_HL, Z80_R_E,  Z80_Execute_Unimplemented},
-    {0x74, 1, "LD (HL),H",          Z80_R_HL, Z80_R_H,  Z80_Execute_Unimplemented},
-    {0x75, 1, "LD (HL),L",          Z80_R_HL, Z80_R_L,  Z80_Execute_Unimplemented},
+    {0x70, 1, "LD (HL),B\n",        Z80_R_HL, Z80_R_B,  Z80_Execute_LD_pRR_R},
+    {0x71, 1, "LD (HL),C\n",        Z80_R_HL, Z80_R_C,  Z80_Execute_LD_pRR_R},
+    {0x72, 1, "LD (HL),D\n",        Z80_R_HL, Z80_R_D,  Z80_Execute_LD_pRR_R},
+    {0x73, 1, "LD (HL),E\n",        Z80_R_HL, Z80_R_E,  Z80_Execute_LD_pRR_R},
+    {0x74, 1, "LD (HL),H\n",        Z80_R_HL, Z80_R_H,  Z80_Execute_LD_pRR_R},
+    {0x75, 1, "LD (HL),L\n",        Z80_R_HL, Z80_R_L,  Z80_Execute_LD_pRR_R},
     {0x76, 1, "HALT",               0,        0,        Z80_Execute_Unimplemented},
-    {0x77, 1, "LD (HL),A",          Z80_R_HL, Z80_R_A,  Z80_Execute_Unimplemented},
+    {0x77, 1, "LD (HL),A\n",        Z80_R_HL, Z80_R_A,  Z80_Execute_LD_pRR_R},
     {0x78, 1, "LD A,B",             Z80_R_A,  Z80_R_B,  Z80_Execute_Unimplemented},
     {0x79, 1, "LD A,C",             Z80_R_A,  Z80_R_C,  Z80_Execute_Unimplemented},
     {0x7A, 1, "LD A,D",             Z80_R_A,  Z80_R_D,  Z80_Execute_Unimplemented},
@@ -861,6 +863,24 @@ static int Z80_Execute_LD_pR_R(Z80_OpCode_t const * const opcode)
     return 8;
 }
 
+
+/**
+ * opcode: LD (RR),R
+ * size:1, duration:8, znhc flag:----
+ */
+static int Z80_Execute_LD_pRR_R(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = Z80_REG8(opcode->Param1)->UByte;
+    uint16_t const addr = Z80_REG16(opcode->Param0)->UWord;
+    Memory_Write(addr, data);
+
+    return 8;
+}
+
+
 /**
  * opcode: LD (RR-),R
  * size:1, duration:8, znhc flag:----
@@ -908,6 +928,33 @@ static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode)
 /******************************************************/
 
 /**
+ * OpCode: INC R
+ * Size:1, Duration:4, ZNHC Flag:Z0H-
+ */
+static int Z80_Execute_INC_R(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = Z80_REG8(opcode->Param0)->UByte;
+    uint8_t const result = data + 1;
+    Z80_REG8(opcode->Param0)->UByte = result;
+
+    /* Set up Flag */
+    Z80_FLAG_CLEAR(Z80_F_Z | Z80_F_N | Z80_F_H);
+    if(result == 0x00)
+    {
+        Z80_FLAG_SET(Z80_F_Z);
+    }
+    if((data & 0x0F) == 0x0F)
+    {
+        Z80_FLAG_SET(Z80_F_H);
+    }
+
+    return 4;
+}
+
+/**
  * OpCode: XOR R
  * Size:1, Duration:4, ZNHC Flag:Z000
  */
@@ -950,7 +997,7 @@ static int Z80_Execute_BIT_N_R(Z80_OpCode_t const * const opcode)
     uint8_t const result = data & (0x01 << bit);
 
     /* Set up Flag */
-    Z80_FLAG_CLEAR(Z80_F_N | Z80_F_Z);
+    Z80_FLAG_CLEAR(Z80_F_Z | Z80_F_N);
     Z80_FLAG_SET(Z80_F_H);
     if(result == 0x00)
     {
