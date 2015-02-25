@@ -177,6 +177,7 @@ static int Z80_Execute_Unimplemented(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_PREFIX_CB(Z80_OpCode_t const * const opcode);
 
 /* Jump/Call Command */
+static int Z80_Execute_CALL_F_NN(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_JR_F_N(Z80_OpCode_t const * const opcode);
 
 /* 8 bit Load/Move/Store Command */
@@ -404,7 +405,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xC1, 1, "POP BC",                     Z80_R_BC, Z80_NULL, Z80_Execute_Unimplemented},
     {0xC2, 3, "JP NZ,a16",                  Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xC3, 3, "JP a16",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xC4, 3, "CALL NZ,a16",                Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xC4, 3, "CALL NZ,0x%04X\n",           Z80_F_Z,  Z80_F_NO, Z80_Execute_CALL_F_NN},
     {0xC5, 1, "PUSH BC",                    Z80_R_BC, Z80_NULL, Z80_Execute_Unimplemented},
     {0xC6, 2, "ADD A,d8",                   Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xC7, 1, "RST 00H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
@@ -412,15 +413,15 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xC9, 1, "RET",                        Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xCA, 3, "JP Z,a16",                   Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xCB, 1, "PREFIX CB\n",                Z80_NULL, Z80_NULL, Z80_Execute_PREFIX_CB},
-    {0xCC, 3, "CALL Z,a16",                 Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xCD, 3, "CALL a16",                   Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xCC, 3, "CALL Z,0x%04X\n",            Z80_F_Z,  Z80_F_Z,  Z80_Execute_CALL_F_NN},
+    {0xCD, 3, "CALL 0x%04X\n",              Z80_F_NO, Z80_F_NO, Z80_Execute_CALL_F_NN},
     {0xCE, 2, "ADC A,d8",                   Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xCF, 1, "RST 08H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD0, 1, "RET NC",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD1, 1, "POP DE",                     Z80_R_DE, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD2, 3, "JP NC,a16",                  Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD3, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xD4, 3, "CALL NC,a16",                Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xD4, 3, "CALL NC,0x%04X\n",           Z80_F_C,  Z80_F_NO, Z80_Execute_CALL_F_NN},
     {0xD5, 1, "PUSH DE",                    Z80_R_DE, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD6, 2, "SUB d8",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD7, 1, "RST 10H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
@@ -428,7 +429,7 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xD9, 1, "RETI",                       Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xDA, 3, "JP C,a16",                   Z80_R_C,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xDB, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xDC, 3, "CALL C,a16",                 Z80_R_C,  Z80_NULL, Z80_Execute_Unimplemented},
+    {0xDC, 3, "CALL C,0x%04X\n",            Z80_F_C,  Z80_F_C,  Z80_Execute_CALL_F_NN},
     {0xDD, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xDE, 2, "SBC A,d8",                   Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xDF, 1, "RST 18H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
@@ -808,6 +809,41 @@ static int Z80_Execute_PREFIX_CB(Z80_OpCode_t const * const opcode)
 /******************************************************/
 /* Jump/Call Command                                  */
 /******************************************************/
+
+/**
+ * opcode: CALL F,NN
+ * size:3, duration:24/12, znhc flag:----
+ */
+static int Z80_Execute_CALL_F_NN(Z80_OpCode_t const * const opcode)
+{
+    /* Get instruction */
+    uint8_t const data0 = Z80_ReadPc();
+    uint8_t const data1 = Z80_ReadPc();
+
+    LOG_INFO(opcode->Name, CONCAT(data0, data1));
+
+    /* Execute the command */
+    uint8_t mask = opcode->Param0;
+    uint8_t compare = opcode->Param1;
+    if(Z80_FLAG_CHECK(mask, compare))
+    {
+        /* Copy PC in the Stack and update SP */
+        uint8_t const pc0 = Z80_REG16(Z80_R_PC)->Byte[0].UByte;
+        uint8_t const pc1 = Z80_REG16(Z80_R_PC)->Byte[1].UByte;
+        uint16_t const sp = Z80_REG16(Z80_R_SP)->UWord;
+        Memory_Write(sp - 1, pc1);
+        Memory_Write(sp - 2, pc0);
+        Z80_REG16(Z80_R_SP)->UWord = sp - 2;
+        
+        /* Set PC to the call addr */
+        Z80_REG16(Z80_R_PC)->Byte[0].UByte = data0;
+        Z80_REG16(Z80_R_PC)->Byte[1].UByte = data1;
+        return 24;
+    }
+
+    return 12;
+}
+
 
 /**
  * opcode: JR F,N
