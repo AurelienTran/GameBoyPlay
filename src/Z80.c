@@ -191,6 +191,8 @@ static int Z80_Execute_LDD_pRR_R(Z80_OpCode_t const * const opcode);
 
 /* 16 bit Load/Move/Store Command */
 static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode);
+static int Z80_Execute_PUSH_RR(Z80_OpCode_t const * const opcode);
+static int Z80_Execute_POP_RR(Z80_OpCode_t const * const opcode);
 
 /* 8 bit Arithmetic/Logical Command */
 static int Z80_Execute_INC_R(Z80_OpCode_t const * const opcode);
@@ -403,11 +405,11 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xBE, 1, "CP (HL)",                    Z80_R_HL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xBF, 1, "CP A",                       Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xC0, 1, "RET NZ",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xC1, 1, "POP BC",                     Z80_R_BC, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xC1, 1, "POP BC\n",                   Z80_R_BC, Z80_NULL, Z80_Execute_POP_RR},
     {0xC2, 3, "JP NZ,a16",                  Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xC3, 3, "JP a16",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xC4, 3, "CALL NZ,0x%04X\n",           Z80_F_Z,  Z80_F_NO, Z80_Execute_CALL_F_NN},
-    {0xC5, 1, "PUSH BC",                    Z80_R_BC, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xC5, 1, "PUSH BC\n",                  Z80_R_BC, Z80_NULL, Z80_Execute_PUSH_RR},
     {0xC6, 2, "ADD A,d8",                   Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xC7, 1, "RST 00H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xC8, 1, "RET Z",                      Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
@@ -419,11 +421,11 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xCE, 2, "ADC A,d8",                   Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xCF, 1, "RST 08H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD0, 1, "RET NC",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xD1, 1, "POP DE",                     Z80_R_DE, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xD1, 1, "POP DE\n",                   Z80_R_DE, Z80_NULL, Z80_Execute_POP_RR},
     {0xD2, 3, "JP NC,a16",                  Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD3, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD4, 3, "CALL NC,0x%04X\n",           Z80_F_C,  Z80_F_NO, Z80_Execute_CALL_F_NN},
-    {0xD5, 1, "PUSH DE",                    Z80_R_DE, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xD5, 1, "PUSH DE\n",                  Z80_R_DE, Z80_NULL, Z80_Execute_PUSH_RR},
     {0xD6, 2, "SUB d8",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD7, 1, "RST 10H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xD8, 1, "RET C",                      Z80_R_C,  Z80_NULL, Z80_Execute_Unimplemented},
@@ -435,11 +437,11 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xDE, 2, "SBC A,d8",                   Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
     {0xDF, 1, "RST 18H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xE0, 2, "LD (0xFF00+0x%02x),A\n",     Z80_NULL, Z80_R_A,  Z80_Execute_LD_pN_R},
-    {0xE1, 1, "POP HL",                     Z80_R_HL, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xE1, 1, "POP HL\n",                   Z80_R_HL, Z80_NULL, Z80_Execute_POP_RR},
     {0xE2, 1, "LD (0xFF00+C),A\n",          Z80_R_C,  Z80_R_A,  Z80_Execute_LD_pR_R},
     {0xE3, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xE4, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xE5, 1, "PUSH HL",                    Z80_R_HL, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xE5, 1, "PUSH HL\n",                  Z80_R_HL, Z80_NULL, Z80_Execute_PUSH_RR},
     {0xE6, 2, "AND d8",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xE7, 1, "RST 20H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xE8, 2, "ADD SP,r8",                  Z80_R_SP, Z80_NULL, Z80_Execute_Unimplemented},
@@ -451,11 +453,11 @@ static Z80_OpCode_t const Z80_OpCode[] =
     {0xEE, 2, "XOR d8",                     Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xEF, 1, "RST 28H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xF0, 2, "LDH A,(a8)",                 Z80_R_A,  Z80_NULL, Z80_Execute_Unimplemented},
-    {0xF1, 1, "POP AF",                     Z80_R_AF, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xF1, 1, "POP AF\n",                   Z80_R_AF, Z80_NULL, Z80_Execute_POP_RR},
     {0xF2, 2, "LD A,(C)",                   Z80_R_A,  Z80_R_C,  Z80_Execute_Unimplemented},
     {0xF3, 1, "DI",                         Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xF4, 1, "-",                          Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
-    {0xF5, 1, "PUSH AF",                    Z80_R_AF, Z80_NULL, Z80_Execute_Unimplemented},
+    {0xF5, 1, "PUSH AF\n",                  Z80_R_AF, Z80_NULL, Z80_Execute_PUSH_RR},
     {0xF6, 2, "OR d8",                      Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xF7, 1, "RST 30H",                    Z80_NULL, Z80_NULL, Z80_Execute_Unimplemented},
     {0xF8, 2, "LD HL,SP+r8",                Z80_R_HL, Z80_R_SP, Z80_Execute_Unimplemented},
@@ -1018,6 +1020,46 @@ static int Z80_Execute_LD_RR_NN(Z80_OpCode_t const * const opcode)
     Z80_REG16(opcode->Param0)->Byte[1].UByte = data1;
 
     return 12;
+}
+
+
+/**
+ * opcode: PUSH RR
+ * size:1, duration:16, znhc flag:----
+ */
+static int Z80_Execute_PUSH_RR(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const rr0 = Z80_REG16(opcode->Param0)->Byte[0].UByte;
+    uint8_t const rr1 = Z80_REG16(opcode->Param0)->Byte[1].UByte;
+    uint16_t const sp = Z80_REG16(Z80_R_SP)->UWord;
+    Memory_Write(sp - 1, rr1);
+    Memory_Write(sp - 2, rr0);
+    Z80_REG16(Z80_R_SP)->UWord = sp - 2;
+        
+    return 16;
+}
+
+
+/**
+ * opcode: PUSH RR
+ * size:1, duration:12, znhc flag:----
+ */
+static int Z80_Execute_POP_RR(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint16_t const sp = Z80_REG16(Z80_R_SP)->UWord;
+    uint8_t data0 = Memory_Read(sp);
+    uint8_t data1 = Memory_Read(sp + 1);
+    Z80_REG16(opcode->Param0)->Byte[0].UByte = data0;
+    Z80_REG16(opcode->Param0)->Byte[1].UByte = data1;
+    Z80_REG16(Z80_R_SP)->UWord = sp + 2;
+        
+    return 16;
 }
 
 
