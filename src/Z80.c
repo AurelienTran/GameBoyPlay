@@ -200,8 +200,11 @@ static int Z80_Execute_XOR_R(Z80_OpCode_t const * const opcode);
 
 /* 8 bit Rotation/Shift/Bit Command */
 static int Z80_Execute_BIT_N_R(Z80_OpCode_t const * const opcode);
+static int Z80_Execute_BIT_N_pRR(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_SET_N_R(Z80_OpCode_t const * const opcode);
+static int Z80_Execute_SET_N_pRR(Z80_OpCode_t const * const opcode);
 static int Z80_Execute_RES_N_R(Z80_OpCode_t const * const opcode);
+static int Z80_Execute_RES_N_pRR(Z80_OpCode_t const * const opcode);
 
 
 /******************************************************/
@@ -544,7 +547,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x43, 2, "BIT 0,E\n",                  0x01,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x44, 2, "BIT 0,H\n",                  0x01,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x45, 2, "BIT 0,L\n",                  0x01,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x46, 2, "BIT 0,(HL)",                 0x01,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x46, 2, "BIT 0,(HL)\n",               0x01,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x47, 2, "BIT 0,A\n",                  0x01,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x48, 2, "BIT 1,B\n",                  0x02,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x49, 2, "BIT 1,C\n",                  0x02,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -552,7 +555,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x4B, 2, "BIT 1,E\n",                  0x02,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x4C, 2, "BIT 1,H\n",                  0x02,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x4D, 2, "BIT 1,L\n",                  0x02,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x4E, 2, "BIT 1,(HL)",                 0x02,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x4E, 2, "BIT 1,(HL)\n",               0x02,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x4F, 2, "BIT 1,A\n",                  0x02,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x50, 2, "BIT 2,B\n",                  0x04,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x51, 2, "BIT 2,C\n",                  0x04,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -560,7 +563,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x53, 2, "BIT 2,E\n",                  0x04,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x54, 2, "BIT 2,H\n",                  0x04,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x55, 2, "BIT 2,L\n",                  0x04,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x56, 2, "BIT 2,(HL)",                 0x04,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x56, 2, "BIT 2,(HL)\n",               0x04,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x57, 2, "BIT 2,A\n",                  0x04,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x58, 2, "BIT 3,B\n",                  0x08,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x59, 2, "BIT 3,C\n",                  0x08,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -568,7 +571,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x5B, 2, "BIT 3,E\n",                  0x08,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x5C, 2, "BIT 3,H\n",                  0x08,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x5D, 2, "BIT 3,L\n",                  0x08,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x5E, 2, "BIT 3,(HL)",                 0x08,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x5E, 2, "BIT 3,(HL)\n",               0x08,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x5F, 2, "BIT 3,A\n",                  0x08,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x60, 2, "BIT 4,B\n",                  0x10,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x61, 2, "BIT 4,C\n",                  0x10,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -576,7 +579,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x63, 2, "BIT 4,E\n",                  0x10,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x64, 2, "BIT 4,H\n",                  0x10,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x65, 2, "BIT 4,L\n",                  0x10,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x66, 2, "BIT 4,(HL)",                 0x10,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x66, 2, "BIT 4,(HL)\n",               0x10,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x67, 2, "BIT 4,A\n",                  0x10,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x68, 2, "BIT 5,B\n",                  0x20,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x69, 2, "BIT 5,C\n",                  0x20,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -584,7 +587,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x6B, 2, "BIT 5,E\n",                  0x20,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x6C, 2, "BIT 5,H\n",                  0x20,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x6D, 2, "BIT 5,L\n",                  0x20,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x6E, 2, "BIT 5,(HL)",                 0x20,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x6E, 2, "BIT 5,(HL)\n",               0x20,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x6F, 2, "BIT 5,A\n",                  0x20,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x70, 2, "BIT 6,B\n",                  0x40,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x71, 2, "BIT 6,C\n",                  0x40,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -592,7 +595,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x73, 2, "BIT 6,E\n",                  0x40,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x74, 2, "BIT 6,H\n",                  0x40,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x75, 2, "BIT 6,L\n",                  0x40,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x76, 2, "BIT 6,(HL)",                 0x40,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x76, 2, "BIT 6,(HL)\n",               0x40,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x77, 2, "BIT 6,A\n",                  0x40,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x78, 2, "BIT 7,B\n",                  0x80,     Z80_R_B,  Z80_Execute_BIT_N_R},
     {0x79, 2, "BIT 7,C\n",                  0x80,     Z80_R_C,  Z80_Execute_BIT_N_R},
@@ -600,7 +603,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x7B, 2, "BIT 7,E\n",                  0x80,     Z80_R_E,  Z80_Execute_BIT_N_R},
     {0x7C, 2, "BIT 7,H\n",                  0x80,     Z80_R_H,  Z80_Execute_BIT_N_R},
     {0x7D, 2, "BIT 7,L\n",                  0x80,     Z80_R_L,  Z80_Execute_BIT_N_R},
-    {0x7E, 2, "BIT 7,(HL)",                 0x80,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x7E, 2, "BIT 7,(HL)\n",               0x80,     Z80_R_HL, Z80_Execute_BIT_N_pRR},
     {0x7F, 2, "BIT 7,A\n",                  0x80,     Z80_R_A,  Z80_Execute_BIT_N_R},
     {0x80, 2, "RES 0,B\n",                  0x01,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0x81, 2, "RES 0,C\n",                  0x01,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -608,7 +611,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x83, 2, "RES 0,E\n",                  0x01,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0x84, 2, "RES 0,H\n",                  0x01,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0x85, 2, "RES 0,L\n",                  0x01,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0x86, 2, "RES 0,(HL)",                 0x01,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x86, 2, "RES 0,(HL)\n",               0x01,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0x87, 2, "RES 0,A\n",                  0x01,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0x88, 2, "RES 1,B\n",                  0x02,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0x89, 2, "RES 1,C\n",                  0x02,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -616,7 +619,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x8B, 2, "RES 1,E\n",                  0x02,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0x8C, 2, "RES 1,H\n",                  0x02,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0x8D, 2, "RES 1,L\n",                  0x02,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0x8E, 2, "RES 1,(HL)",                 0x02,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x8E, 2, "RES 1,(HL)\n",               0x02,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0x8F, 2, "RES 1,A\n",                  0x02,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0x90, 2, "RES 2,B\n",                  0x04,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0x91, 2, "RES 2,C\n",                  0x04,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -624,7 +627,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x93, 2, "RES 2,E\n",                  0x04,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0x94, 2, "RES 2,H\n",                  0x04,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0x95, 2, "RES 2,L\n",                  0x04,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0x96, 2, "RES 2,(HL)",                 0x04,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x96, 2, "RES 2,(HL)\n",               0x04,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0x97, 2, "RES 2,A\n",                  0x04,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0x98, 2, "RES 3,B\n",                  0x08,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0x99, 2, "RES 3,C\n",                  0x08,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -632,7 +635,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0x9B, 2, "RES 3,E\n",                  0x08,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0x9C, 2, "RES 3,H\n",                  0x08,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0x9D, 2, "RES 3,L\n",                  0x08,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0x9E, 2, "RES 3,(HL)",                 0x08,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0x9E, 2, "RES 3,(HL)\n",               0x08,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0x9F, 2, "RES 3,A\n",                  0x08,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0xA0, 2, "RES 4,B\n",                  0x10,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0xA1, 2, "RES 4,C\n",                  0x10,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -640,7 +643,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xA3, 2, "RES 4,E\n",                  0x10,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0xA4, 2, "RES 4,H\n",                  0x10,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0xA5, 2, "RES 4,L\n",                  0x10,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0xA6, 2, "RES 4,(HL)",                 0x10,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xA6, 2, "RES 4,(HL)\n",               0x10,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0xA7, 2, "RES 4,A\n",                  0x10,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0xA8, 2, "RES 5,B\n",                  0x20,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0xA9, 2, "RES 5,C\n",                  0x20,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -648,7 +651,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xAB, 2, "RES 5,E\n",                  0x20,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0xAC, 2, "RES 5,H\n",                  0x20,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0xAD, 2, "RES 5,L\n",                  0x20,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0xAE, 2, "RES 5,(HL)",                 0x20,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xAE, 2, "RES 5,(HL)\n",               0x20,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0xAF, 2, "RES 5,A\n",                  0x20,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0xB0, 2, "RES 6,B\n",                  0x40,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0xB1, 2, "RES 6,C\n",                  0x40,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -656,7 +659,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xB3, 2, "RES 6,E\n",                  0x40,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0xB4, 2, "RES 6,H\n",                  0x40,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0xB5, 2, "RES 6,L\n",                  0x40,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0xB6, 2, "RES 6,(HL)",                 0x40,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xB6, 2, "RES 6,(HL)\n",               0x40,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0xB7, 2, "RES 6,A\n",                  0x40,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0xB8, 2, "RES 7,B\n",                  0x80,     Z80_R_B,  Z80_Execute_RES_N_R},
     {0xB9, 2, "RES 7,C\n",                  0x80,     Z80_R_C,  Z80_Execute_RES_N_R},
@@ -664,7 +667,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xBB, 2, "RES 7,E\n",                  0x80,     Z80_R_E,  Z80_Execute_RES_N_R},
     {0xBC, 2, "RES 7,H\n",                  0x80,     Z80_R_H,  Z80_Execute_RES_N_R},
     {0xBD, 2, "RES 7,L\n",                  0x80,     Z80_R_L,  Z80_Execute_RES_N_R},
-    {0xBE, 2, "RES 7,(HL)",                 0x80,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xBE, 2, "RES 7,(HL)\n",               0x80,     Z80_R_HL, Z80_Execute_RES_N_pRR},
     {0xBF, 2, "RES 7,A\n",                  0x80,     Z80_R_A,  Z80_Execute_RES_N_R},
     {0xC0, 2, "SET 0,B\n",                  0x01,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xC1, 2, "SET 0,C\n",                  0x01,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -672,7 +675,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xC3, 2, "SET 0,E\n",                  0x01,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xC4, 2, "SET 0,H\n",                  0x01,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xC5, 2, "SET 0,L\n",                  0x01,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xC6, 2, "SET 0,(HL)",                 0x01,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xC6, 2, "SET 0,(HL)\n",               0x01,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xC7, 2, "SET 0,A\n",                  0x01,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xC8, 2, "SET 1,B\n",                  0x02,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xC9, 2, "SET 1,C\n",                  0x02,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -680,7 +683,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xCB, 2, "SET 1,E\n",                  0x02,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xCC, 2, "SET 1,H\n",                  0x02,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xCD, 2, "SET 1,L\n",                  0x02,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xCE, 2, "SET 1,(HL)",                 0x02,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xCE, 2, "SET 1,(HL)\n",               0x02,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xCF, 2, "SET 1,A\n",                  0x02,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xD0, 2, "SET 2,B\n",                  0x04,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xD1, 2, "SET 2,C\n",                  0x04,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -688,7 +691,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xD3, 2, "SET 2,E\n",                  0x04,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xD4, 2, "SET 2,H\n",                  0x04,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xD5, 2, "SET 2,L\n",                  0x04,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xD6, 2, "SET 2,(HL)",                 0x04,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xD6, 2, "SET 2,(HL)\n",               0x04,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xD7, 2, "SET 2,A\n",                  0x04,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xD8, 2, "SET 3,B\n",                  0x08,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xD9, 2, "SET 3,C\n",                  0x08,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -696,7 +699,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xDB, 2, "SET 3,E\n",                  0x08,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xDC, 2, "SET 3,H\n",                  0x08,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xDD, 2, "SET 3,L\n",                  0x08,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xDE, 2, "SET 3,(HL)",                 0x08,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xDE, 2, "SET 3,(HL)\n",               0x08,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xDF, 2, "SET 3,A\n",                  0x08,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xE0, 2, "SET 4,B\n",                  0x10,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xE1, 2, "SET 4,C\n",                  0x10,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -704,7 +707,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xE3, 2, "SET 4,E\n",                  0x10,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xE4, 2, "SET 4,H\n",                  0x10,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xE5, 2, "SET 4,L\n",                  0x10,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xE6, 2, "SET 4,(HL)",                 0x10,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xE6, 2, "SET 4,(HL)\n",               0x10,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xE7, 2, "SET 4,A\n",                  0x10,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xE8, 2, "SET 5,B\n",                  0x20,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xE9, 2, "SET 5,C\n",                  0x20,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -712,7 +715,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xEB, 2, "SET 5,E\n",                  0x20,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xEC, 2, "SET 5,H\n",                  0x20,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xED, 2, "SET 5,L\n",                  0x20,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xEE, 2, "SET 5,(HL)",                 0x20,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xEE, 2, "SET 5,(HL)\n",               0x20,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xEF, 2, "SET 5,A\n",                  0x20,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xF0, 2, "SET 6,B\n",                  0x40,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xF1, 2, "SET 6,C\n",                  0x40,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -720,7 +723,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xF3, 2, "SET 6,E\n",                  0x40,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xF4, 2, "SET 6,H\n",                  0x40,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xF5, 2, "SET 6,L\n",                  0x40,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xF6, 2, "SET 6,(HL)",                 0x40,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xF6, 2, "SET 6,(HL)\n",               0x40,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xF7, 2, "SET 6,A\n",                  0x40,     Z80_R_A,  Z80_Execute_SET_N_R},
     {0xF8, 2, "SET 7,B\n",                  0x80,     Z80_R_B,  Z80_Execute_SET_N_R},
     {0xF9, 2, "SET 7,C\n",                  0x80,     Z80_R_C,  Z80_Execute_SET_N_R},
@@ -728,7 +731,7 @@ static Z80_OpCode_t const Z80_OpCode_Prefix[] =
     {0xFB, 2, "SET 7,E\n",                  0x80,     Z80_R_E,  Z80_Execute_SET_N_R},
     {0xFC, 2, "SET 7,H\n",                  0x80,     Z80_R_H,  Z80_Execute_SET_N_R},
     {0xFD, 2, "SET 7,L\n",                  0x80,     Z80_R_L,  Z80_Execute_SET_N_R},
-    {0xFE, 2, "SET 7,(HL)",                 0x80,     Z80_R_HL, Z80_Execute_Unimplemented},
+    {0xFE, 2, "SET 7,(HL)\n",               0x80,     Z80_R_HL, Z80_Execute_SET_N_pRR},
     {0xFF, 2, "SET 7,A\n",                  0x80,     Z80_R_A,  Z80_Execute_SET_N_R}
 };
 
@@ -1154,6 +1157,32 @@ static int Z80_Execute_BIT_N_R(Z80_OpCode_t const * const opcode)
 
 
 /**
+ * OpCode: BIT N,(RR)
+ * Size:2, Duration:16, ZNHC Flag:Z01-
+ */
+static int Z80_Execute_BIT_N_pRR(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const mask = opcode->Param0;
+    uint16_t const addr = Z80_REG16(opcode->Param1)->UWord;
+    uint8_t const data = Memory_Read(addr);
+    uint8_t const result = data & mask;
+
+    /* Set up Flag */
+    Z80_FLAG_CLEAR(Z80_F_Z | Z80_F_N);
+    Z80_FLAG_SET(Z80_F_H);
+    if(result == 0x00)
+    {
+        Z80_FLAG_SET(Z80_F_Z);
+    }
+
+    return 16;
+}
+
+
+/**
  * OpCode: SET N,R
  * Size:2, Duration:8, ZNHC Flag:----
  */
@@ -1172,6 +1201,25 @@ static int Z80_Execute_SET_N_R(Z80_OpCode_t const * const opcode)
 
 
 /**
+ * OpCode: SET N,pRR
+ * Size:2, Duration:16, ZNHC Flag:----
+ */
+static int Z80_Execute_SET_N_pRR(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const mask = opcode->Param0;
+    uint16_t const addr = Z80_REG16(opcode->Param1)->UWord;
+    uint8_t const data = Memory_Read(addr);
+    uint8_t const result = data | mask;
+    Memory_Write(addr, result);
+
+    return 16;
+}
+
+
+/**
  * OpCode: RES N,R
  * Size:2, Duration:8, ZNHC Flag:----
  */
@@ -1186,6 +1234,25 @@ static int Z80_Execute_RES_N_R(Z80_OpCode_t const * const opcode)
     Z80_REG8(opcode->Param1)->UByte = result;
 
     return 8;
+}
+
+
+/**
+ * OpCode: RES N,pRR
+ * Size:2, Duration:16, ZNHC Flag:----
+ */
+static int Z80_Execute_RES_N_pRR(Z80_OpCode_t const * const opcode)
+{
+    LOG_INFO(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const mask = opcode->Param0;
+    uint16_t const addr = Z80_REG16(opcode->Param1)->UWord;
+    uint8_t const data = Memory_Read(addr);
+    uint8_t const result = data & ~mask;
+    Memory_Write(addr, result);
+
+    return 16;
 }
 
 
