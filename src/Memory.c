@@ -39,6 +39,7 @@
 /* Macro                                              */
 /******************************************************/
 
+/** 16 bit addressable memory table */
 #define MEMORY_TABLE_SIZE   0x00010000
 
 
