@@ -762,7 +762,6 @@ int Z80_Step(void)
 
 void Z80_Print(void)
 {
-    LOG_INFO("=====================\n");
     LOG_INFO("Z80 Register:\n");
     LOG_INFO("AF = 0x%04X\n", Z80_REG16(Z80_R_AF)->UWord);
     LOG_INFO("BC = 0x%04X\n", Z80_REG16(Z80_R_BC)->UWord);
@@ -770,7 +769,6 @@ void Z80_Print(void)
     LOG_INFO("HL = 0x%04X\n", Z80_REG16(Z80_R_HL)->UWord);
     LOG_INFO("SP = 0x%04X\n", Z80_REG16(Z80_R_SP)->UWord);
     LOG_INFO("PC = 0x%04X\n", Z80_REG16(Z80_R_PC)->UWord);
-    LOG_INFO("=====================\n");
 }
 
 
