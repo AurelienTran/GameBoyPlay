@@ -45,13 +45,13 @@
  * Get 16 bit register pointer
  * @param reg The 16 bit register Z80_RegName_e id
  */
-#define Z80_REG16(reg)  (&Z80_State.Reg[reg])
+#define Z80_REG16(reg)  (&Z80_Info.Reg[reg])
 
 /**
  * Get 8 bit register pointer
  * @param reg The 8 bit register Z80_RegName_e id
  */
-#define Z80_REG8(reg)   (&Z80_State.Reg[(reg) / 2].Byte[(reg) % 2])
+#define Z80_REG8(reg)   (&Z80_Info.Reg[(reg) / 2].Byte[(reg) % 2])
 
 /**
  * Concat 2 Byte data to 1 Word
@@ -134,12 +134,12 @@ typedef enum tagZ80_FlagName_e
 } Z80_FlagName_e;
 
 /** Z80 State */
-typedef struct tagZ80_State_t
+typedef struct tagZ80_Info_t
 {
     Reg16_t Reg[Z80_REG_NUM];   /**< Internal Register */
-} Z80_State_t;
+} Z80_Info_t;
 
-/* Forward declaration for Z80_ExecuteCallback_t definition */
+/* Forward declaration for Z80_Callback_t definition */
 typedef struct tagZ80_OpCode_t Z80_OpCode_t;
 
 /**
@@ -147,7 +147,7 @@ typedef struct tagZ80_OpCode_t Z80_OpCode_t;
  * @param dst Destination register
  * @param src Source register
  */
-typedef int (*Z80_ExecuteCallback_t)(Z80_OpCode_t const * const opcode);
+typedef int (*Z80_Callback_t)(Z80_OpCode_t const * const opcode);
 
 /** Z80 OpCode information */
 typedef struct tagZ80_OpCode_t
@@ -157,7 +157,7 @@ typedef struct tagZ80_OpCode_t
     char const * Name;             /**< OpCode Name */
     uint32_t Param0;        /**< OpCode Param 1 */
     uint32_t Param1;        /**< Opcode Param 2 */
-    Z80_ExecuteCallback_t ExecuteCallback; /**< OpCode execution callback */
+    Z80_Callback_t Callback; /**< OpCode execution callback */
 } Z80_OpCode_t;
 
 
@@ -212,7 +212,7 @@ static int Z80_Execute_RES_N_pRR(Z80_OpCode_t const * const opcode);
 /******************************************************/
 
 /** Z80 State */
-static Z80_State_t Z80_State;
+static Z80_Info_t Z80_Info;
 
 /** Callback table for each OpCode */
 static Z80_OpCode_t const Z80_OpCode[] =
@@ -756,7 +756,7 @@ void Z80_Run(void)
     Z80_OpCode_t const * opcode = &Z80_OpCode[data];
 
     /* Execute instruction */
-    opcode->ExecuteCallback(opcode);
+    opcode->Callback(opcode);
 }
 
 
@@ -813,7 +813,7 @@ static int Z80_Execute_PREFIX_CB(Z80_OpCode_t const * const opcode)
     Z80_OpCode_t const * opcode_prefix = &Z80_OpCode_Prefix[data];
 
     /* Execute instruction */
-    return opcode_prefix->ExecuteCallback(opcode_prefix);
+    return opcode_prefix->Callback(opcode_prefix);
 }
 
 
