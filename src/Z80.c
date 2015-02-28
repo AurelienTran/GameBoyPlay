@@ -211,7 +211,7 @@ static int Z80_Execute_RES_N_pRR(Z80_OpCode_t const * const opcode);
 /* Variable                                           */
 /******************************************************/
 
-/** Z80 State */
+/** Z80 Info */
 static Z80_Info_t Z80_Info;
 
 /** Callback table for each OpCode */
@@ -749,14 +749,14 @@ void Z80_Initialize(void)
 }
 
 
-void Z80_Run(void)
+int Z80_Step(void)
 {
     /* Get instruction */
     uint8_t const data = Z80_ReadPc();
     Z80_OpCode_t const * opcode = &Z80_OpCode[data];
 
     /* Execute instruction */
-    opcode->Callback(opcode);
+    return opcode->Callback(opcode);
 }
 
 

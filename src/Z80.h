@@ -55,7 +55,7 @@ extern void Z80_Initialize(void);
  * Initialize Z80
  * @return The number of cycle used for the instruction
  */
-extern int Z80_Run(void);
+extern int Z80_Step(void);
 
 /**
  * Print Z80 internal state for debug purpose
