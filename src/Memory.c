@@ -32,7 +32,7 @@
 #include <string.h>
 #include <errno.h>
 #include <Memory.h>
-#include <Log.h>
+#include <Debugger.h>
 
 
 /******************************************************/
@@ -83,7 +83,7 @@ void Memory_LoadFile(char const * file, uint16_t addr)
     FILE *pFile = fopen(file, "r");
     if(pFile == NULL)
     {
-        LOG_ERROR("LoadFile Error: %s\n", strerror(errno));
+        DEBUGGER_ERROR("LoadFile Error: %s\n", strerror(errno));
         return;
     }
 
@@ -107,14 +107,14 @@ void Memory_LoadFile(char const * file, uint16_t addr)
 
 void Memory_Write(uint16_t addr, uint8_t data)
 {
-    LOG_DEBUG("Write 0x%04X: 0x%02X\n", addr, data);
+    DEBUGGER_TRACE("Write 0x%04X: 0x%02X\n", addr, data);
     Memory_Table[addr] = data;
 }
 
 
 uint8_t Memory_Read(uint16_t addr)
 {
-    LOG_DEBUG("Read 0x%04X: 0x%02X\n", addr, Memory_Table[addr]);
+    DEBUGGER_TRACE("Read 0x%04X: 0x%02X\n", addr, Memory_Table[addr]);
     return Memory_Table[addr];
 }
 

@@ -33,6 +33,51 @@
 /* Macro                                              */
 /******************************************************/
 
+/* Assert */
+#define DEBUGGER_ASSERT(cond)
+
+/* Panic */
+#define DEBUGGER_PANIC(cond)
+
+/* Level definition */
+#define DEBUGGER_LEVEL_ERROR    0   /**< Abnormal event that make the program stop */
+#define DEBUGGER_LEVEL_WARNING  1   /**< Abnomral event but program can go on */
+#define DEBUGGER_LEVEL_INFO     2   /**< Normal event about program behavior */
+#define DEBUGGER_LEVEL_TRACE    3   /**< Normal event about program behavior */
+
+/* Set Default Level filter */
+#ifndef DEBUGGER_LEVEL
+#  define DEBUGGER_LEVEL          DEBUGGER_LEVEL_INFO
+#endif
+
+/* Filter Error level */
+#if DEBUGGER_LEVEL < DEBUGGER_LEVEL_ERROR
+#  define DEBUGGER_ERROR(...)
+#else
+#  define DEBUGGER_ERROR(...)     do{ Debugger_Log(__VA_ARGS__); } while(0)
+#endif
+
+/* Filter Warning level */
+#if DEBUGGER_LEVEL < DEBUGGER_LEVEL_WARNING
+#  define DEBUGGER_WARNING(...)
+#else
+#  define DEBUGGER_WARNING(...)   do{ Debugger_Log(__VA_ARGS__); } while(0)
+#endif
+
+/* Filter Info level */
+#if DEBUGGER_LEVEL < DEBUGGER_LEVEL_INFO
+#  define DEBUGGER_INFO(...)
+#else
+#  define DEBUGGER_INFO(...)      do{ Debugger_Log(__VA_ARGS__); } while(0)
+#endif
+
+/* Filter Trace level */
+#if DEBUGGER_LEVEL < DEBUGGER_LEVEL_TRACE
+#  define DEBUGGER_TRACE(...)
+#else
+#  define DEBUGGER_TRACE(...)     do{ Debugger_Log(__VA_ARGS__); } while(0)
+#endif
+
 
 /******************************************************/
 /* Type                                               */
@@ -47,6 +92,18 @@
  * Run Debugging shell
  */
 extern void Debugger_RunShell(int argc, char const *argv[]);
+
+/**
+ * Event logger
+ * @param fmt String to print 
+ */
+extern void Debugger_Log(char const *fmt, ...);
+
+/**
+ * Notify PC address for breakpoint
+ * @param addr The PC address
+ */
+extern void Debugger_NotifyPcAddress(uint16_t addr);
 
 
 /******************************************************/

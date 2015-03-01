@@ -62,6 +62,11 @@ extern int Cpu_Step(void);
  */
 extern void Cpu_Print(void);
 
+/**
+ * Get PC register
+ */
+extern uint16_t Cpu_GetProgramCounter(void);
+
 
 /******************************************************/
 /* Variable                                           */

@@ -26,6 +26,7 @@
 /* Include                                            */
 /******************************************************/
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,7 +34,6 @@
 #include <stdlib.h>
 #include <Memory.h>
 #include <Cpu.h>
-#include <Log.h>
 
 
 /******************************************************/
@@ -94,10 +94,11 @@ typedef enum tagDebugger_State_e
 typedef struct tagDebugger_Info_t
 {
     Debugger_State_e State;                             /**< Debugger state */
-    int BreakpointCount;                                /**< Breakpoint set count */
-    int WatchpointCount;                                /**< Watchpoint set count */
-    uint16_t BreakpointList[DEBUGGER_BREAKPOINT_COUNT]; /**< Breakpoint list */
-    uint16_t WatchpointList[DEBUGGER_WATCHPOINT_COUNT]; /**< Watchpoint list */
+    int BreakListCount;                                 /**< Breakpoint set count */
+    int WatchListCount;                                 /**< Watchpoint set count */
+    uint16_t BreakListAddr[DEBUGGER_BREAKPOINT_COUNT];  /**< Breakpoint list */
+    uint16_t WatchListAddr[DEBUGGER_WATCHPOINT_COUNT];  /**< Watchpoint list */
+    uint16_t WatchListSize[DEBUGGER_WATCHPOINT_COUNT];  /**< Watchpoint list */
 } Debugger_Info_t;
 
 
@@ -213,6 +214,8 @@ void Debugger_RunShell(int argc, char const *argv[])
 
     while(Debugger_Info.State != DEBUGGER_STATE_EXIT)
     {
+        Debugger_Info.State = DEBUGGER_STATE_RUN;
+
         /* Get user input */
         if(Debugger_GetUserInput(buffer) == NULL)
         {
@@ -281,6 +284,30 @@ void Debugger_RunShell(int argc, char const *argv[])
 }
 
 
+void Debugger_Log(char const *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stdout, fmt, args);
+    va_end(args);
+    fflush(stdout);
+}
+
+
+void Debugger_NotifyPcAddress(uint16_t addr)
+{
+    for(int i=0; i<Debugger_Info.BreakListCount; i++)
+    {
+        if(addr == Debugger_Info.BreakListAddr[i])
+        {
+            Debugger_Info.State = DEBUGGER_STATE_BREAK;
+            printf("Breakpoint: 0x%04X\n", addr);
+            return;
+        }
+    }
+}
+
+
 /******************************************************/
 /* Command function                                   */
 /******************************************************/
@@ -290,10 +317,18 @@ void Debugger_RunShell(int argc, char const *argv[])
  */
 static void Debugger_CommandStep(int argc, char const * argv[])
 {
-    /* @todo get the number of step to execute */
-    (void) argc;
-	(void) argv;
+    if(argc > 2)
+    {
+        printf("Wrong number of argument\n");
+        return;
+    }
+
+    /* Get the number of step to execute */
     int step = 1;
+    if(argc == 2)
+    {
+        step = strtol(argv[1], NULL, 0);
+    }
 
     for(int i=0; i<step; i++)
     {
@@ -304,6 +339,9 @@ static void Debugger_CommandStep(int argc, char const * argv[])
             break;
         }
     }
+
+    /* Display CPU after stepping */
+    Cpu_Print();
 }
 
 /**
@@ -319,6 +357,9 @@ static void Debugger_CommandRun(int argc, char const * argv[])
     {
         Cpu_Step();
     }
+
+    /* Display CPU after stepping */
+    Cpu_Print();
 }
 
 /**
@@ -342,28 +383,47 @@ static void Debugger_CommandReset(int argc, char const * argv[])
  */
 static void Debugger_CommandBreak(int argc, char const * argv[])
 {
+    /* breakpoint presence */
+    int found = 0;
+
     if(argc != 2)
     {
         printf("Wrong number of argument\n");
+        return;
     }
-    /* @todo get the breakpoint addresss */
-    (void) argc;
-	(void) argv;
-    uint16_t addr = 0;
 
-    /* Register breakpoint */
-    if(Debugger_Info.BreakpointCount == DEBUGGER_BREAKPOINT_COUNT)
+    /* Get breakpoint addresss */
+    uint16_t addr = (uint16_t)strtol(argv[1], NULL, 0);
+
+    /* Check Table overflow */
+    if(Debugger_Info.BreakListCount == DEBUGGER_BREAKPOINT_COUNT)
     {
-        printf("Too many breakpoint set.\n");
+        found = 1;
+        printf("Cannot register more than %d breakpoint.\n", DEBUGGER_BREAKPOINT_COUNT);
     }
-    Debugger_Info.BreakpointList[Debugger_Info.BreakpointCount] = addr;
-    Debugger_Info.BreakpointCount ++;
+
+    /* Check for breakpoint presence */
+    for(int i=0; i<Debugger_Info.BreakListCount; i++)
+    {
+        if(addr == Debugger_Info.BreakListAddr[i])
+        {
+            found = 1;
+            break;
+        }
+    }
+   
+    /* Register breakpoint if not found */
+    if(found == 0)
+    {
+        Debugger_Info.BreakListAddr[Debugger_Info.BreakListCount] = addr;
+        Debugger_Info.BreakListCount ++;
+    }
 
     /* Print breakpoint list */
-    printf("Breakpoint:\n");
-    for(int i=0; i<Debugger_Info.BreakpointCount; i++)
+    printf("Breakpoint list:\n");
+    for(int i=0; i<Debugger_Info.BreakListCount; i++)
     {
-        printf("#%d: 0x%x\n", i, Debugger_Info.BreakpointList[i]);
+        printf("#%d: 0x%04x\n", i, Debugger_Info.BreakListAddr[i]);
     }
 }
 
@@ -373,24 +433,65 @@ static void Debugger_CommandBreak(int argc, char const * argv[])
  */
 static void Debugger_CommandWatch(int argc, char const * argv[])
 {
-    /* @todo get the watchpoint addresss */
-    (void) argc;
-	(void) argv;
-    uint16_t addr = 0;
+    /* Watchpoint presence */
+    int found = 0;
+
+    if((argc != 2) && (argc != 3))
+    {
+        printf("Wrong number of argument\n");
+        return;
+    }
+
+   /* Get watchpoint addresss */
+    uint16_t addr = (uint16_t)strtol(argv[1], NULL, 0);
+
+    /* Get watchpoint size area */
+    uint16_t size = 1;
+    if(argc == 3)
+    {
+        size = (uint16_t)strtol(argv[2], NULL, 0);
+    }
+
+    /* Check Table overflow */
+    if(Debugger_Info.WatchListCount == DEBUGGER_WATCHPOINT_COUNT)
+    {
+        found = 1;
+        printf("Cannot register more than %d watchpoint.\n", DEBUGGER_WATCHPOINT_COUNT);
+    }
+
+    /* Check for breakpoint presence */
+    for(int i=0; i<Debugger_Info.WatchListCount; i++)
+    {
+        if((addr == Debugger_Info.WatchListAddr[i]) &&
+           (size == Debugger_Info.WatchListSize[i]))
+        {
+            found = 1;
+            break;
+        }
+    }
 
     /* Register watchpoint */
-    if(Debugger_Info.WatchpointCount == DEBUGGER_WATCHPOINT_COUNT)
+    if(found == 0)
     {
-        printf("Too many watchpoint set.\n");
+        Debugger_Info.WatchListAddr[Debugger_Info.WatchListCount] = addr;
+        Debugger_Info.WatchListSize[Debugger_Info.WatchListCount] = size;
+        Debugger_Info.WatchListCount ++;
     }
-    Debugger_Info.WatchpointList[Debugger_Info.WatchpointCount] = addr;
-    Debugger_Info.WatchpointCount ++;
 
     /* Print watchpoint list */
-    printf("Watchpoint:\n");
-    for(int i=0; i<Debugger_Info.WatchpointCount; i++)
+    printf("Watchpoint list:\n");
+    for(int i=0; i<Debugger_Info.WatchListCount; i++)
     {
-        printf("#%d: 0x%x\n", i, Debugger_Info.WatchpointList[i]);
+        addr = Debugger_Info.WatchListAddr[i];
+        size = Debugger_Info.WatchListSize[i];
+        if(size == 1)
+        {
+            printf("#%d: 0x%04X\n", i, addr);
+        }
+        else
+        {
+            printf("#%d: 0x%04X-0x%04X\n", i, addr, addr + size - 1);
+        }
     }
 }
 
@@ -404,8 +505,8 @@ static void Debugger_CommandClear(int argc, char const * argv[])
     (void) argc;
 	(void) argv;
 
-    Debugger_Info.WatchpointCount = 0;
-    Debugger_Info.BreakpointCount = 0;
+    Debugger_Info.WatchListCount = 0;
+    Debugger_Info.BreakListCount = 0;
 
     /* Print watchpoint list */
     printf("All watchpoint and breakpoint removed.\n");
