@@ -21,8 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _Z80_H_
-#define _Z80_H_
+#ifndef _CPU_H_
+#define _CPU_H_
 
 
 /******************************************************/
@@ -47,20 +47,20 @@
 /******************************************************/
 
 /**
- * Initialize Z80
+ * Initialize CPU
  */
-extern void Z80_Initialize(void);
+extern void Cpu_Initialize(void);
 
 /**
- * Initialize Z80
+ * Process 1 CPU instruction
  * @return The number of cycle used for the instruction
  */
-extern int Z80_Step(void);
+extern int Cpu_Step(void);
 
 /**
- * Print Z80 internal state for debug purpose
+ * Print CPU internal state for debug purpose
  */
-extern void Z80_Print(void);
+extern void Cpu_Print(void);
 
 
 /******************************************************/
@@ -73,5 +73,5 @@ extern void Z80_Print(void);
 /******************************************************/
 
 
-#endif /* _Z80_H_ */
+#endif /* _CPU_H_ */
 

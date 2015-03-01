@@ -32,7 +32,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <Memory.h>
-#include <Z80.h>
+#include <Cpu.h>
 #include <Log.h>
 
 
@@ -216,7 +216,7 @@ void Debugger_RunShell(int argc, char const *argv[])
         if(argc == 0)
         {
             Debugger_Info.PreviousCmd->Callback(argc, (char const **)argv);
-            Z80_Print();
+            Cpu_Print();
             continue;
         }
 
@@ -229,7 +229,7 @@ void Debugger_RunShell(int argc, char const *argv[])
                 found = 1;
                 Debugger_Info.PreviousCmd = &Debugger_Command[i];
                 Debugger_Command[i].Callback(argc, (char const **)argv);
-                Z80_Print();
+                Cpu_Print();
                 break;
             }
         }
@@ -259,7 +259,7 @@ static void Debugger_CommandStep(int argc, char const * argv[])
 
     for(int i=0; i<step; i++)
     {
-        Z80_Step();
+        Cpu_Step();
 
         if(Debugger_Info.State == DEBUGGER_STATE_BREAK)
         {
@@ -279,7 +279,7 @@ static void Debugger_CommandRun(int argc, char const * argv[])
 
     while(Debugger_Info.State == DEBUGGER_STATE_RUN)
     {
-        Z80_Step();
+        Cpu_Step();
     }
 }
 
@@ -294,7 +294,7 @@ static void Debugger_CommandReset(int argc, char const * argv[])
 
     /* @todo find a better way to do it */
     Memory_Initialize();
-    Z80_Initialize();
+    Cpu_Initialize();
     Memory_LoadFile("rom/bootstrap.bin", 0);
 }
 
@@ -403,7 +403,7 @@ static void Debugger_CommandCpu(int argc, char const * argv[])
 	(void) argv;
 
     /* Print CPU */
-    Z80_Print();
+    Cpu_Print();
 }
 
 /**
