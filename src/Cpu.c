@@ -785,7 +785,7 @@ static inline uint8_t Cpu_ReadPc(void)
     CPU_REG16(CPU_R_PC)->UWord = pc + 1;
 
     /* Notfiy PC for breakpoint */
-    Debugger_NotifyPcAddress(pc + 1);
+    Debugger_NotifyPcChange(pc + 1);
 
     return data;
 }

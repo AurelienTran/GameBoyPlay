@@ -294,7 +294,7 @@ void Debugger_Log(char const *fmt, ...)
 }
 
 
-void Debugger_NotifyPcAddress(uint16_t addr)
+void Debugger_NotifyPcChange(uint16_t addr)
 {
     for(int i=0; i<Debugger_Info.BreakListCount; i++)
     {
@@ -302,6 +302,21 @@ void Debugger_NotifyPcAddress(uint16_t addr)
         {
             Debugger_Info.State = DEBUGGER_STATE_BREAK;
             printf("Breakpoint: 0x%04X\n", addr);
+            return;
+        }
+    }
+}
+
+void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
+{
+    for(int i=0; i<Debugger_Info.WatchListCount; i++)
+    {
+        uint16_t waddr = Debugger_Info.WatchListAddr[i];
+        uint16_t wsize = Debugger_Info.WatchListSize[i];
+        if((addr >= waddr) && (addr < waddr + wsize))
+        {
+            Debugger_Info.State = DEBUGGER_STATE_BREAK;
+            printf("Watchpoint: 0x%04X = 0x%02X\n", addr, data);
             return;
         }
     }

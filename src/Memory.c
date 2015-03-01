@@ -109,6 +109,9 @@ void Memory_Write(uint16_t addr, uint8_t data)
 {
     DEBUGGER_TRACE("Write 0x%04X: 0x%02X\n", addr, data);
     Memory_Table[addr] = data;
+
+    /* Notify memory change for watchpoint */
+    Debugger_NotifyMemoryWrite(addr, data);
 }
 
 

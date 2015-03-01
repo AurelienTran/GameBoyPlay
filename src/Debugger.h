@@ -103,7 +103,14 @@ extern void Debugger_Log(char const *fmt, ...);
  * Notify PC address for breakpoint
  * @param addr The PC address
  */
-extern void Debugger_NotifyPcAddress(uint16_t addr);
+extern void Debugger_NotifyPcChange(uint16_t addr);
+
+/**
+ * Notify Memory change for watchpoint
+ * @param addr The memory address where change occured
+ * @param data The data written to addr
+ */
+extern void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data);
 
 
 /******************************************************/
