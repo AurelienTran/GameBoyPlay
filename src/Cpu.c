@@ -764,12 +764,12 @@ int Cpu_Step(void)
 void Cpu_Print(void)
 {
     LOG_INFO("CPU Register:\n");
-    LOG_INFO("AF = 0x%04X\n", CPU_REG16(CPU_R_AF)->UWord);
-    LOG_INFO("BC = 0x%04X\n", CPU_REG16(CPU_R_BC)->UWord);
-    LOG_INFO("DE = 0x%04X\n", CPU_REG16(CPU_R_DE)->UWord);
-    LOG_INFO("HL = 0x%04X\n", CPU_REG16(CPU_R_HL)->UWord);
-    LOG_INFO("SP = 0x%04X\n", CPU_REG16(CPU_R_SP)->UWord);
-    LOG_INFO("PC = 0x%04X\n", CPU_REG16(CPU_R_PC)->UWord);
+    LOG_INFO("#AF: 0x%04X\n", CPU_REG16(CPU_R_AF)->UWord);
+    LOG_INFO("#BC: 0x%04X\n", CPU_REG16(CPU_R_BC)->UWord);
+    LOG_INFO("#DE: 0x%04X\n", CPU_REG16(CPU_R_DE)->UWord);
+    LOG_INFO("#HL: 0x%04X\n", CPU_REG16(CPU_R_HL)->UWord);
+    LOG_INFO("#SP: 0x%04X\n", CPU_REG16(CPU_R_SP)->UWord);
+    LOG_INFO("#PC: 0x%04X\n", CPU_REG16(CPU_R_PC)->UWord);
 }
 
 

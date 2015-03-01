@@ -72,6 +72,7 @@ typedef void (*Debugger_Callback_t)(int argc, char const * argv[]);
 typedef struct tagDebugger_Command_t
 {
     char const * Name;              /**< Name */
+    char const * Shortcut;          /**< Shortcut */
     char const * Argument;          /**< Argument format */ 
     char const * Help;              /**< Help string */
     Debugger_Callback_t Callback;   /**< Callback */
@@ -84,7 +85,7 @@ typedef enum tagDebugger_State_e
 {
     DEBUGGER_STATE_RUN,     /**< Run wihtout interruption */
     DEBUGGER_STATE_BREAK,   /**< Pause the program for debug */
-    DEBUGGER_STATE_EXIT     /**< Exit the debugger */
+    DEBUGGER_STATE_EXIT     /**< Quit the debugger */
 } Debugger_State_e;
 
 /**
@@ -93,7 +94,6 @@ typedef enum tagDebugger_State_e
 typedef struct tagDebugger_Info_t
 {
     Debugger_State_e State;                             /**< Debugger state */
-    Debugger_Command_t const *PreviousCmd;              /**< Previous command called */
     int BreakpointCount;                                /**< Breakpoint set count */
     int WatchpointCount;                                /**< Watchpoint set count */
     uint16_t BreakpointList[DEBUGGER_BREAKPOINT_COUNT]; /**< Breakpoint list */
@@ -114,9 +114,11 @@ static void Debugger_CommandWatch(int argc, char const * argv[]);
 static void Debugger_CommandClear(int argc, char const * argv[]);
 static void Debugger_CommandMem(int argc, char const * argv[]);
 static void Debugger_CommandCpu(int argc, char const * argv[]);
-static void Debugger_CommandExit(int argc, char const * argv[]);
+static void Debugger_CommandQuit(int argc, char const * argv[]);
 static void Debugger_CommandHelp(int argc, char const * argv[]);
 
+/* Shell utility */
+static char * Debugger_GetUserInput(char * buffer);
 
 /******************************************************/
 /* Variable                                           */
@@ -133,23 +135,23 @@ static Debugger_Info_t Debugger_Info;
 Debugger_Command_t const Debugger_Command[] =
 {
     /* Program Execution */
-    {"run", "",                 "Run the program to be debugged.",      Debugger_CommandRun},
-    {"step", "[step #]",        "Go to next instruction.",              Debugger_CommandStep},
-    {"continue", "",            "Continue normal execution.",           Debugger_CommandRun},
-    {"reset", "",               "Reset the program.",                   Debugger_CommandReset},
+    {"run", "r", "",                 "Run the program to be debugged.",         Debugger_CommandRun},
+    {"step", "s", "[step #]",        "Go to next instruction.",                 Debugger_CommandStep},
+    {"continue", "c", "",            "Continue normal execution.",              Debugger_CommandRun},
+    {"reset", "rst", "",             "Reset the program.",                      Debugger_CommandReset},
 
     /* Breakpoint and Watchpoint */
-    {"break", "<addr>",         "Set a new breakpoint.",                Debugger_CommandBreak},
-    {"watch", "<addr>",         "Set a new watchpoint.",                Debugger_CommandWatch},
-    {"clear", "",               "Remove all breakpoint.",               Debugger_CommandClear},
+    {"break", "b", "<addr>",         "Set a new breakpoint.",                   Debugger_CommandBreak},
+    {"watch", "w", "<addr> [size]",  "Set a new watchpoint. (default: size=1)", Debugger_CommandWatch},
+    {"clear", "clr", "",             "Remove all breakpoint.",                  Debugger_CommandClear},
 
     /* Memory display */
-    {"mem", "<addr> [size]",    "Print memory area. (default: size=1)", Debugger_CommandMem},
-    {"cpu", "",                 "Print CPU register.",                  Debugger_CommandCpu},
+    {"mem", "m", "<addr> [size]",    "Print memory area. (default: size=1)",    Debugger_CommandMem},
+    {"cpu", "cpu", "",               "Print CPU register.",                     Debugger_CommandCpu},
 
     /* Misc */
-    {"exit", "",                "Close the application.",               Debugger_CommandExit},
-    {"help", "",                "Print this help.",                     Debugger_CommandHelp}
+    {"help", "h", "",                "Print this help.",                        Debugger_CommandHelp},
+    {"quit", "q", "",                "Close the application.",                  Debugger_CommandQuit}
 };
 
 
@@ -157,25 +159,23 @@ Debugger_Command_t const Debugger_Command[] =
 /* Function                                           */
 /******************************************************/
 
-void Debugger_RunShell(int argc, char const *argv[])
+/**
+ * Get user string input
+ * @param buffer String of DEBUGGER_BUFFER_SIZE length
+ * @return buffer if successful, otherwise NULL
+ */
+static char * Debugger_GetUserInput(char * buffer)
 {
-    char buffer[DEBUGGER_BUFFER_SIZE];
-
-    /* Initialize */
-    Debugger_CommandReset(argc, argv);
-    Debugger_Info.PreviousCmd = &Debugger_Command[ARRAY_SIZE(Debugger_Command) - 1];
-
-    printf("print 'help' to list all availlable command.\n");
-
-    /* Print prompt */
-    while(Debugger_Info.State != DEBUGGER_STATE_EXIT)
+    for(;;)
     {
+        /* Print prompt */
         printf("dbg> ");
 
         /* Get user input */
         if(fgets(buffer, DEBUGGER_BUFFER_SIZE, stdin) == NULL)
         {
-            return;
+            /* An error occur or EOF */
+            return NULL;
         }
 
         /* Handle case where the input is too long */
@@ -188,58 +188,96 @@ void Debugger_RunShell(int argc, char const *argv[])
                 ch = getc(stdin);
             }
 
-            printf("Input too long\n.");
+            printf("Input too long.\n");
+            continue;
         }
 
         /* Remove newline at the end of the line */
         buffer[strlen(buffer)-1] = '\0';
 
-        /* Cut the string in token */
-        int argc = 0;
-        char *argv[DEBUGGER_ARG_COUNT];
+        return buffer;
+    }
+}
+
+
+void Debugger_RunShell(int argc, char const *argv[])
+{
+    char buffer_prev[DEBUGGER_BUFFER_SIZE] = "help";
+    char buffer_curr[DEBUGGER_BUFFER_SIZE];
+    char buffer[DEBUGGER_BUFFER_SIZE];
+
+    /* Initialize */
+    Debugger_CommandReset(0, NULL);
+
+    printf("Print 'help' to list all availlable command.\n");
+
+    while(Debugger_Info.State != DEBUGGER_STATE_EXIT)
+    {
+        /* Get user input */
+        if(Debugger_GetUserInput(buffer) == NULL)
+        {
+            return;
+        }
+
+        /* Remember current string before handling it */
+        strncpy(buffer_curr, buffer, DEBUGGER_BUFFER_SIZE);
+
+        /* Use previous command if the current input have no command */
         char *pch = strtok(buffer, " ");
+        if(pch == NULL)
+        {
+            strncpy(buffer,      buffer_prev, DEBUGGER_BUFFER_SIZE);
+            strncpy(buffer_curr, buffer_prev, DEBUGGER_BUFFER_SIZE);
+            pch = strtok(buffer, " ");
+        }
+
+        /* Cut the string in token */
+        int com_argc = 0;
+        char *com_argv[DEBUGGER_ARG_COUNT];
         while(pch != NULL)
         {    
-            argv[argc] = pch;
-            argc ++;
+            com_argv[com_argc] = pch;
+            com_argc ++;
 
-            if(argc > DEBUGGER_ARG_COUNT)
+            if(com_argc > DEBUGGER_ARG_COUNT)
             {
-                /* Ignore argument */
+                /* Ignore extra argument */
                 break;
             }
 
             pch = strtok(NULL, " ");
         }
 
-        /* Execute previous command if no input */
-        if(argc == 0)
-        {
-            Debugger_Info.PreviousCmd->Callback(argc, (char const **)argv);
-            Cpu_Print();
-            continue;
-        }
-
         /* Find the right command and execute it */
-        int found = 0;
-        for(int i=0; i<(int)ARRAY_SIZE(Debugger_Command); i++)
+        int i, found = 0;
+        for(i=0; i<(int)ARRAY_SIZE(Debugger_Command); i++)
         {
-            if(strcmp(argv[0], Debugger_Command[i].Name) == 0)
+            if(strcmp(com_argv[0], Debugger_Command[i].Name) == 0)
             {
                 found = 1;
-                Debugger_Info.PreviousCmd = &Debugger_Command[i];
-                Debugger_Command[i].Callback(argc, (char const **)argv);
-                Cpu_Print();
                 break;
             }
+            if(Debugger_Command[i].Shortcut != NULL)
+            {
+                if(strcmp(com_argv[0], Debugger_Command[i].Shortcut) == 0)
+                {
+                    found = 1;
+                    break;
+                }
+            }
         }
-        if(found == 0)
+
+        /* Execute command */
+        if(found == 1)
+        {
+            Debugger_Command[i].Callback(com_argc, (char const **)com_argv);
+            strncpy(buffer_prev, buffer_curr, DEBUGGER_BUFFER_SIZE);
+        }
+        else
         {
             printf("Unknown command. Print 'help' to list availlable command.\n");
         }
     }
-
-    printf("Bye bye!\n");
 }
 
 
@@ -416,18 +454,21 @@ static void Debugger_CommandHelp(int argc, char const * argv[])
 	(void) argv;
 
     /* Print help */
-    printf("Help:\n");
+    printf("------------------------------------------------------------------------\n");
+    printf(":     Name Argument       : Explanation                                :\n");
+    printf("------------------------------------------------------------------------\n");
     for(int i=0; i<(int)ARRAY_SIZE(Debugger_Command); i++)
     {
         Debugger_Command_t const * pCmd = &Debugger_Command[i];
-        printf("%10s %-15s: %s\n", pCmd->Name, pCmd->Argument, pCmd->Help);
+        printf(":%9s %-15s: %-43s:\n", pCmd->Name, pCmd->Argument, pCmd->Help);
     }
+    printf("------------------------------------------------------------------------\n");
 }
 
 /**
- * Exit the debugger
+ * Quit the debugger
  */
-static void Debugger_CommandExit(int argc, char const * argv[])
+static void Debugger_CommandQuit(int argc, char const * argv[])
 {
     /* Unused parameter */
     (void) argc;
