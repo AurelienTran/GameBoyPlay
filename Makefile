@@ -4,10 +4,10 @@ OBJECT=$(patsubst %.c, %.o, $(SOURCE))
 
 CFLAGS= -std=c99 -Wall -Wextra -g -Isrc
 
+all: $(TARGET)
+
 check: $(TARGET)
 	./$(TARGET) rom/bootstrap.bin
-
-all: $(TARGET)
 
 clean:
 	$(RM) $(TARGET) $(OBJECT)

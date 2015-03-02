@@ -138,17 +138,16 @@ Debugger_Command_t const Debugger_Command[] =
     /* Program Execution */
     {"run", "r", "",                 "Run the program to be debugged.",         Debugger_CommandRun},
     {"step", "s", "[step #]",        "Go to next instruction.",                 Debugger_CommandStep},
-    {"continue", "c", "",            "Continue normal execution.",              Debugger_CommandRun},
     {"reset", "rst", "",             "Reset the program.",                      Debugger_CommandReset},
 
     /* Breakpoint and Watchpoint */
     {"break", "b", "<addr>",         "Set a new breakpoint.",                   Debugger_CommandBreak},
     {"watch", "w", "<addr> [size]",  "Set a new watchpoint. (default: size=1)", Debugger_CommandWatch},
-    {"clear", "clr", "",             "Remove all breakpoint.",                  Debugger_CommandClear},
+    {"clear", "c", "",               "Remove all breakpoint.",                  Debugger_CommandClear},
 
-    /* Memory display */
-    {"mem", "m", "<addr> [size]",    "Print memory area. (default: size=1)",    Debugger_CommandMem},
-    {"cpu", "cpu", "",               "Print CPU register.",                     Debugger_CommandCpu},
+    /* Memory */
+    {"mem", "", "<addr> [size]",     "Print memory area. (default: size=1)",    Debugger_CommandMem},
+    {"cpu", "", "",                  "Print CPU register.",                     Debugger_CommandCpu},
 
     /* Misc */
     {"help", "h", "",                "Print this help.",                        Debugger_CommandHelp},
@@ -533,11 +532,20 @@ static void Debugger_CommandClear(int argc, char const * argv[])
  */
 static void Debugger_CommandMem(int argc, char const * argv[])
 {
-    /* @todo get the memory addresss and size */
-    (void) argc;
-	(void) argv;
-    uint16_t addr = 0;
+    if((argc != 2) && (argc != 3))
+    {
+        printf("Wrong number of argument\n");
+        return;
+    }
+
+    /* Get the memory addresss and size */
+    uint16_t addr = (uint16_t)strtol(argv[1], NULL, 0);
     int size = 1;
+
+    if(argc == 3)
+    {
+        size = strtol(argv[2], NULL, 0);
+    }
 
     /* Print Memory area */
     printf("Memory:\n");
