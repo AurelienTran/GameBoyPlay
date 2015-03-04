@@ -206,6 +206,9 @@ static int Cpu_Execute_SET_N_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_SET_N_pRR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RES_N_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RES_N_pRR(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_RL_R(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_RL_pRR(Cpu_OpCode_t const * const opcode);
 
 
 /******************************************************/
@@ -241,7 +244,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x14, 1, "INC D\n",                    CPU_R_D,  CPU_NULL, Cpu_Execute_INC_R},
     {0x15, 1, "DEC D",                      CPU_R_D,  CPU_NULL, Cpu_Execute_Unimplemented},
     {0x16, 2, "LD D,0x%02X\n",              CPU_R_D,  CPU_NULL, Cpu_Execute_LD_R_N},
-    {0x17, 1, "RLA",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x17, 1, "RLA\n",                      CPU_NULL, CPU_NULL, Cpu_Execute_RLA},
     {0x18, 2, "JR %d\n",                    CPU_F_NO, CPU_F_NO, Cpu_Execute_JR_F_N},
     {0x19, 1, "ADD HL,DE",                  CPU_R_HL, CPU_R_DE, Cpu_Execute_Unimplemented},
     {0x1A, 1, "LD A,(DE)\n",                CPU_R_A,  CPU_R_DE, Cpu_Execute_LD_R_pRR},
@@ -494,14 +497,14 @@ static Cpu_OpCode_t const Cpu_OpCode_Prefix[] =
     {0x0D, 2, "RRC L",                      CPU_R_L,  CPU_NULL, Cpu_Execute_Unimplemented},
     {0x0E, 2, "RRC (HL)",                   CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x0F, 2, "RRC A",                      CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x10, 2, "RL B",                       CPU_R_B,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x11, 2, "RL C",                       CPU_R_C,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x12, 2, "RL D",                       CPU_R_D,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x13, 2, "RL E",                       CPU_R_E,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x14, 2, "RL H",                       CPU_R_H,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x15, 2, "RL L",                       CPU_R_L,  CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x16, 2, "RL (HL)",                    CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
-    {0x17, 2, "RL A",                       CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x10, 2, "RL B\n",                     CPU_R_B,  CPU_NULL, Cpu_Execute_RL_R},
+    {0x11, 2, "RL C\n",                     CPU_R_C,  CPU_NULL, Cpu_Execute_RL_R},
+    {0x12, 2, "RL D\n",                     CPU_R_D,  CPU_NULL, Cpu_Execute_RL_R},
+    {0x13, 2, "RL E\n",                     CPU_R_E,  CPU_NULL, Cpu_Execute_RL_R},
+    {0x14, 2, "RL H\n",                     CPU_R_H,  CPU_NULL, Cpu_Execute_RL_R},
+    {0x15, 2, "RL L\n",                     CPU_R_L,  CPU_NULL, Cpu_Execute_RL_R},
+    {0x16, 2, "RL (HL)\n",                  CPU_R_HL, CPU_NULL, Cpu_Execute_RL_pRR},
+    {0x17, 2, "RL A\n",                     CPU_R_A,  CPU_NULL, Cpu_Execute_RL_R},
     {0x18, 2, "RR B",                       CPU_R_B,  CPU_NULL, Cpu_Execute_Unimplemented},
     {0x19, 2, "RR C",                       CPU_R_C,  CPU_NULL, Cpu_Execute_Unimplemented},
     {0x1A, 2, "RR D",                       CPU_R_D,  CPU_NULL, Cpu_Execute_Unimplemented},
@@ -1263,4 +1266,87 @@ static int Cpu_Execute_RES_N_pRR(Cpu_OpCode_t const * const opcode)
     return 16;
 }
 
+
+/**
+ * OpCode: RLA
+ * Size:1, Duration:4, ZNHC Flag:000C
+ */
+static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = CPU_REG8(CPU_R_A)->UByte;
+    uint8_t const carry = CPU_FLAG_CHECK(CPU_F_C, CPU_F_C) ? 0x01 : 0x00;
+    uint8_t const result = (data << 1) | carry;
+    CPU_REG8(CPU_R_A)->UByte = result;
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_ALL);
+    if((data & 0x80) == 0x80)
+    {
+        CPU_FLAG_SET(CPU_F_C);
+    }
+
+    return 4;
+}
+
+
+/**
+ * OpCode: RL R
+ * Size:2, Duration:8, ZNHC Flag:Z00C
+ */
+static int Cpu_Execute_RL_R(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = CPU_REG8(opcode->Param0)->UByte;
+    uint8_t const carry = CPU_FLAG_CHECK(CPU_F_C, CPU_F_C) ? 0x01 : 0x00;
+    uint8_t const result = (data << 1) | carry;
+    CPU_REG8(opcode->Param0)->UByte = result;
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_ALL);
+    if(result == 0x00)
+    {
+        CPU_FLAG_SET(CPU_F_Z);
+    }
+    if((data & 0x80) == 0x80)
+    {
+        CPU_FLAG_SET(CPU_F_C);
+    }
+
+    return 8;
+}
+
+
+/**
+ * OpCode: RL pRR
+ * Size:2, Duration:16, ZNHC Flag:Z00C
+ */
+static int Cpu_Execute_RL_pRR(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
+    uint8_t const data = Memory_Read(addr);
+    uint8_t const carry = CPU_FLAG_CHECK(CPU_F_C, CPU_F_C) ? 0x01 : 0x00;
+    uint8_t const result = (data << 1) | carry;
+    Memory_Write(addr, result);
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_ALL);
+    if(result == 0x00)
+    {
+        CPU_FLAG_SET(CPU_F_Z);
+    }
+    if((data & 0x80) == 0x80)
+    {
+        CPU_FLAG_SET(CPU_F_C);
+    }
+
+    return 16;
+}
 
