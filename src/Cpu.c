@@ -189,6 +189,7 @@ static int Cpu_Execute_LD_pR_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_LD_pN_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_LD_pRR_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_LDD_pRR_R(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_LDI_pRR_R(Cpu_OpCode_t const * const opcode);
 
 /* 16 bit Load/Move/Store Command */
 static int Cpu_Execute_LD_RR_NN(Cpu_OpCode_t const * const opcode);
@@ -256,7 +257,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x1F, 1, "RRA",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x20, 2, "JR NZ,%d\n",                 CPU_F_Z,  CPU_F_NO, Cpu_Execute_JR_F_N},
     {0x21, 3, "LD HL,0x%04X\n",             CPU_R_HL, CPU_NULL, Cpu_Execute_LD_RR_NN},
-    {0x22, 1, "LD (HL+),A",                 CPU_R_HL, CPU_R_A,  Cpu_Execute_Unimplemented},
+    {0x22, 1, "LD (HL+),A\n",               CPU_R_HL, CPU_R_A,  Cpu_Execute_LDI_pRR_R},
     {0x23, 1, "INC HL",                     CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x24, 1, "INC H\n",                    CPU_R_H,  CPU_NULL, Cpu_Execute_INC_R},
     {0x25, 1, "DEC H\n",                    CPU_R_H,  CPU_NULL, Cpu_Execute_DEC_R},
@@ -1018,6 +1019,25 @@ static int Cpu_Execute_LDD_pRR_R(Cpu_OpCode_t const * const opcode)
 
     return 8;
 }
+
+
+/**
+ * opcode: LD (RR+),R
+ * size:1, duration:8, znhc flag:----
+ */
+static int Cpu_Execute_LDI_pRR_R(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
+    uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
+    Memory_Write(addr, data);
+    CPU_REG16(opcode->Param0)->UWord = addr + 1;
+
+    return 8;
+}
+
 
 
 /******************************************************/
