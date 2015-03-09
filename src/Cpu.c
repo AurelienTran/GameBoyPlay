@@ -113,6 +113,7 @@ static int Cpu_Execute_PREFIX_CB(Cpu_OpCode_t const * const opcode);
 /* Jump/Call Command */
 static int Cpu_Execute_CALL_F_NN(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_JR_F_N(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_RET(Cpu_OpCode_t const * const opcode);
 
 /* 8 bit Load/Move/Store Command */
 static int Cpu_Execute_LD_R_N(Cpu_OpCode_t const * const opcode);
@@ -133,6 +134,7 @@ static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_INC_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_DEC_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_XOR_R(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_CP_N(Cpu_OpCode_t const * const opcode);
 
 /* 16 bit Arithmetic/Logical Command */
 static int Cpu_Execute_INC_RR(Cpu_OpCode_t const * const opcode);
@@ -360,7 +362,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0xC6, 2, "ADD A,d8",                   CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
     {0xC7, 1, "RST 00H",                    CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xC8, 1, "RET Z",                      CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
-    {0xC9, 1, "RET",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0xC9, 1, "RET\n",                      CPU_NULL, CPU_NULL, Cpu_Execute_RET},
     {0xCA, 3, "JP Z,a16",                   CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xCB, 1, "PREFIX CB\n",                CPU_NULL, CPU_NULL, Cpu_Execute_PREFIX_CB},
     {0xCC, 3, "CALL Z,0x%04X\n",            CPU_F_Z,  CPU_F_Z,  Cpu_Execute_CALL_F_NN},
@@ -413,7 +415,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0xFB, 1, "EI",                         CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xFC, 1, "-",                          CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xFD, 1, "-",                          CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
-    {0xFE, 2, "CP d8",                      CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0xFE, 2, "CP 0x%02x\n",                CPU_NULL, CPU_NULL, Cpu_Execute_CP_N},
     {0xFF, 1, "RST 38H",                    CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented}
 };
 
@@ -825,6 +827,26 @@ static int Cpu_Execute_JR_F_N(Cpu_OpCode_t const * const opcode)
 }
 
 
+/**
+ * opcode: RET
+ * size:1, duration:16, znhc flag:----
+ */
+static int Cpu_Execute_RET(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint16_t const sp = CPU_REG16(CPU_R_SP)->UWord;
+    uint8_t data0 = Memory_Read(sp);
+    uint8_t data1 = Memory_Read(sp + 1);
+    CPU_REG16(CPU_R_PC)->Byte[0].UByte = data0;
+    CPU_REG16(CPU_R_PC)->Byte[1].UByte = data1;
+    CPU_REG16(CPU_R_SP)->UWord = sp + 2;
+        
+    return 16;
+}
+
+
 /******************************************************/
 /* 8 bit Load/Move/Store Command                      */
 /******************************************************/
@@ -1016,7 +1038,7 @@ static int Cpu_Execute_PUSH_RR(Cpu_OpCode_t const * const opcode)
 
 
 /**
- * opcode: PUSH RR
+ * opcode: POP RR
  * size:1, duration:12, znhc flag:----
  */
 static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode)
@@ -1031,7 +1053,7 @@ static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode)
     CPU_REG16(opcode->Param0)->Byte[1].UByte = data1;
     CPU_REG16(CPU_R_SP)->UWord = sp + 2;
         
-    return 16;
+    return 12;
 }
 
 
@@ -1066,6 +1088,7 @@ static int Cpu_Execute_INC_R(Cpu_OpCode_t const * const opcode)
     return 4;
 }
 
+
 /**
  * OpCode: DEC R
  * Size:1, Duration:4, ZNHC Flag:Z1H-
@@ -1094,6 +1117,7 @@ static int Cpu_Execute_DEC_R(Cpu_OpCode_t const * const opcode)
     return 4;
 }
 
+
 /**
  * OpCode: XOR R
  * Size:1, Duration:4, ZNHC Flag:Z000
@@ -1117,6 +1141,42 @@ static int Cpu_Execute_XOR_R(Cpu_OpCode_t const * const opcode)
 
     return 4;
 }
+
+
+/**
+ * OpCode: CP N
+ * Size:2, Duration:8, ZNHC Flag:Z1HC
+ */
+static int Cpu_Execute_CP_N(Cpu_OpCode_t const * const opcode)
+{
+    /* Get instruction */
+    uint8_t const data = Cpu_ReadPc();
+
+    DEBUGGER_TRACE(opcode->Name, data);
+
+    /* Execute the command */
+    uint8_t const dataA = CPU_REG8(CPU_R_A)->UByte;
+    uint8_t const result = dataA - data;
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_Z | CPU_F_H | CPU_F_C);
+    CPU_FLAG_SET(CPU_F_N);
+    if(result == 0)
+    {
+        CPU_FLAG_SET(CPU_F_Z);
+    }
+    if((data & 0x0F) > (dataA & 0x0F))
+    {
+        CPU_FLAG_SET(CPU_F_H);
+    }
+    if(data > dataA)
+    {
+        CPU_FLAG_SET(CPU_F_C);
+    }
+
+    return 8;
+}
+
 
 /******************************************************/
 /* 16 bit Arithmetic/Logical Command                  */
