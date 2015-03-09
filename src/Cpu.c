@@ -122,6 +122,7 @@ static int Cpu_Execute_LD_pR_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_LD_pN_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_LD_pRR_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_LDD_pRR_R(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_LDI_pRR_R(Cpu_OpCode_t const * const opcode);
 
 /* 16 bit Load/Move/Store Command */
 static int Cpu_Execute_LD_RR_NN(Cpu_OpCode_t const * const opcode);
@@ -130,6 +131,7 @@ static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode);
 
 /* 8 bit Arithmetic/Logical Command */
 static int Cpu_Execute_INC_R(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_DEC_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_XOR_R(Cpu_OpCode_t const * const opcode);
 
 /* 8 bit Rotation/Shift/Bit Command */
@@ -159,7 +161,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x02, 1, "LD (BC),A\n",                CPU_R_BC, CPU_R_A,  Cpu_Execute_LD_pRR_R},
     {0x03, 1, "INC BC",                     CPU_R_BC, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x04, 1, "INC B\n",                    CPU_R_B,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x05, 1, "DEC B",                      CPU_R_B,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x05, 1, "DEC B\n",                    CPU_R_B,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x06, 2, "LD B,0x%02X\n",              CPU_R_B,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x07, 1, "RLCA",                       CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x08, 3, "LD (a16),SP",                CPU_NULL, CPU_R_SP, Cpu_Execute_Unimplemented},
@@ -167,7 +169,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x0A, 1, "LD A,(BC)\n",                CPU_R_A,  CPU_R_BC, Cpu_Execute_LD_R_pRR},
     {0x0B, 1, "DEC BC",                     CPU_R_BC, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x0C, 1, "INC C\n",                    CPU_R_C,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x0D, 1, "DEC C",                      CPU_R_C,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x0D, 1, "DEC C\n",                    CPU_R_C,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x0E, 2, "LD C,0x%02X\n",              CPU_R_C,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x0F, 1, "RRCA",                       CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x10, 2, "STOP",                       CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
@@ -175,7 +177,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x12, 1, "LD (DE),A\n",                CPU_R_DE, CPU_R_A,  Cpu_Execute_LD_pRR_R},
     {0x13, 1, "INC DE",                     CPU_R_DE, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x14, 1, "INC D\n",                    CPU_R_D,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x15, 1, "DEC D",                      CPU_R_D,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x15, 1, "DEC D\n",                    CPU_R_D,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x16, 2, "LD D,0x%02X\n",              CPU_R_D,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x17, 1, "RLA\n",                      CPU_NULL, CPU_NULL, Cpu_Execute_RLA},
     {0x18, 2, "JR %d\n",                    CPU_F_NO, CPU_F_NO, Cpu_Execute_JR_F_N},
@@ -183,15 +185,15 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x1A, 1, "LD A,(DE)\n",                CPU_R_A,  CPU_R_DE, Cpu_Execute_LD_R_pRR},
     {0x1B, 1, "DEC DE",                     CPU_R_DE, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x1C, 1, "INC E\n",                    CPU_R_E,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x1D, 1, "DEC E",                      CPU_R_E,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x1D, 1, "DEC E\n",                    CPU_R_E,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x1E, 2, "LD E,0x%02X\n",              CPU_R_E,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x1F, 1, "RRA",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x20, 2, "JR NZ,%d\n",                 CPU_F_Z,  CPU_F_NO, Cpu_Execute_JR_F_N},
     {0x21, 3, "LD HL,0x%04X\n",             CPU_R_HL, CPU_NULL, Cpu_Execute_LD_RR_NN},
-    {0x22, 1, "LD (HL+),A",                 CPU_R_HL, CPU_R_A,  Cpu_Execute_Unimplemented},
+    {0x22, 1, "LD (HL+),A\n",               CPU_R_HL, CPU_R_A,  Cpu_Execute_LDI_pRR_R},
     {0x23, 1, "INC HL",                     CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x24, 1, "INC H\n",                    CPU_R_H,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x25, 1, "DEC H",                      CPU_R_H,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x25, 1, "DEC H\n",                    CPU_R_H,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x26, 2, "LD H,0x%02X\n",              CPU_R_H,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x27, 1, "DAA",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x28, 2, "JR Z,%d\n",                  CPU_F_Z,  CPU_F_Z,  Cpu_Execute_JR_F_N},
@@ -199,7 +201,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x2A, 1, "LD A,(HL+)",                 CPU_R_A,  CPU_R_HL, Cpu_Execute_Unimplemented},
     {0x2B, 1, "DEC HL",                     CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x2C, 1, "INC L\n",                    CPU_R_L,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x2D, 1, "DEC L",                      CPU_R_L,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x2D, 1, "DEC L\n",                    CPU_R_L,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x2E, 2, "LD L,0x%02X\n",              CPU_R_L,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x2F, 1, "CPL",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x30, 2, "JR NC,%d\n",                 CPU_F_C,  CPU_F_NO, Cpu_Execute_JR_F_N},
@@ -215,7 +217,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x3A, 1, "LD A,(HL-)",                 CPU_R_A,  CPU_R_HL, Cpu_Execute_Unimplemented},
     {0x3B, 1, "DEC SP",                     CPU_R_SP, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x3C, 1, "INC A\n",                    CPU_R_A,  CPU_NULL, Cpu_Execute_INC_R},
-    {0x3D, 1, "DEC A",                      CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x3D, 1, "DEC A\n",                    CPU_R_A,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x3E, 2, "LD A,0x%02X\n",              CPU_R_A,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x3F, 1, "CCF",                        CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x40, 1, "LD B,B\n",                   CPU_R_B,  CPU_R_B,  Cpu_Execute_LD_R_R},
@@ -729,6 +731,7 @@ static inline uint8_t Cpu_ReadPc(void)
  */
 static int Cpu_Execute_Unimplemented(Cpu_OpCode_t const * const opcode)
 {
+    Cpu_Print();
     DEBUGGER_INFO("Unimplemented Opcode 0x%02X: %s\n", opcode->Value, opcode->Name);
     assert(0);
     return 0;
@@ -744,7 +747,7 @@ static int Cpu_Execute_Unimplemented(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_PREFIX_CB(Cpu_OpCode_t const * const opcode)
 {
-    /* unused parameter */
+    /* Unused parameter */
     (void) opcode;
 
     /* Get instruction */
@@ -946,6 +949,25 @@ static int Cpu_Execute_LDD_pRR_R(Cpu_OpCode_t const * const opcode)
 }
 
 
+/**
+ * opcode: LD (RR+),R
+ * size:1, duration:8, znhc flag:----
+ */
+static int Cpu_Execute_LDI_pRR_R(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
+    uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
+    Memory_Write(addr, data);
+    CPU_REG16(opcode->Param0)->UWord = addr + 1;
+
+    return 8;
+}
+
+
+
 /******************************************************/
 /* 16 bit Load/Move/Store Command                     */
 /******************************************************/
@@ -1034,6 +1056,34 @@ static int Cpu_Execute_INC_R(Cpu_OpCode_t const * const opcode)
         CPU_FLAG_SET(CPU_F_Z);
     }
     if((data & 0x0F) == 0x0F)
+    {
+        CPU_FLAG_SET(CPU_F_H);
+    }
+
+    return 4;
+}
+
+/**
+ * OpCode: DEC R
+ * Size:1, Duration:4, ZNHC Flag:Z1H-
+ */
+static int Cpu_Execute_DEC_R(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint8_t const data = CPU_REG8(opcode->Param0)->UByte;
+    uint8_t const result = data - 1;
+    CPU_REG8(opcode->Param0)->UByte = result;
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_Z | CPU_F_H);
+    CPU_FLAG_SET(CPU_F_N);
+    if(result == 0x00)
+    {
+        CPU_FLAG_SET(CPU_F_Z);
+    }
+    if((data & 0x0F) == 0x00)
     {
         CPU_FLAG_SET(CPU_F_H);
     }
@@ -1201,6 +1251,9 @@ static int Cpu_Execute_RES_N_pRR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode)
 {
+    /* Unused parameter */
+    (void) opcode;
+
     DEBUGGER_TRACE(opcode->Name);
 
     /* Execute the command */
