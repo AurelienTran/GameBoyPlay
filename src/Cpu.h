@@ -132,17 +132,25 @@ extern void Cpu_Print(void);
 /**
  * Get PC register
  */
-extern uint16_t Cpu_GetProgramCounter(void);
+inline uint16_t Cpu_GetProgramCounter(void);
 
 
 /******************************************************/
 /* Variable                                           */
 /******************************************************/
 
+/** CPU Info */
+extern Cpu_Info_t Cpu_Info;
+
 
 /******************************************************/
 /* Function                                           */
 /******************************************************/
+
+inline uint16_t Cpu_GetProgramCounter(void)
+{
+    return CPU_REG16(CPU_R_PC)->UWord;
+}
 
 
 #endif /* _CPU_H_ */

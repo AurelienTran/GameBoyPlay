@@ -149,7 +149,7 @@ static int Cpu_Execute_RL_pRR(Cpu_OpCode_t const * const opcode);
 /******************************************************/
 
 /** CPU Info */
-static Cpu_Info_t Cpu_Info;
+Cpu_Info_t Cpu_Info;
 
 /** Callback table for each OpCode */
 static Cpu_OpCode_t const Cpu_OpCode[] =
@@ -706,11 +706,6 @@ void Cpu_Print(void)
     DEBUGGER_INFO("#HL: 0x%04X\n", CPU_REG16(CPU_R_HL)->UWord);
     DEBUGGER_INFO("#SP: 0x%04X\n", CPU_REG16(CPU_R_SP)->UWord);
     DEBUGGER_INFO("#PC: 0x%04X\n", CPU_REG16(CPU_R_PC)->UWord);
-}
-
-uint16_t Cpu_GetProgramCounter(void)
-{
-    return CPU_REG16(CPU_R_PC)->UWord;
 }
 
 
