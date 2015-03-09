@@ -131,6 +131,7 @@ extern void Cpu_Print(void);
 
 /**
  * Get PC register
+ * @return CPU PC register
  */
 inline uint16_t Cpu_GetProgramCounter(void);
 
