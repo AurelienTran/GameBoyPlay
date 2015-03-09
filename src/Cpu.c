@@ -86,19 +86,19 @@
 /******************************************************/
 
 /** All purpose 8 bit register type */
-typedef union tagReg8_t
+typedef union tagCpu_Reg8_t
 {
     uint8_t UByte;  /**< Unsigned 8 bit */
     int8_t  SByte;  /**< Signed 8 bit */
-} Reg8_t;
+} Cpu_Reg8_t;
 
 /** All purpose 16 bit register type */
-typedef union tagReg16_t
+typedef union tagCpu_Reg16_t
 {
-    uint16_t UWord;     /**< Unsigned 16 bit access */
-    int16_t  SWord;     /**< Signed 16 bit access */
-    Reg8_t   Byte[2];   /**< 8 bit access */
-} Reg16_t;
+    uint16_t   UWord;     /**< Unsigned 16 bit access */
+    int16_t    SWord;     /**< Signed 16 bit access */
+    Cpu_Reg8_t Byte[2];   /**< 8 bit access */
+} Cpu_Reg16_t;
 
 /** CPU Register name */
 typedef enum tagCpu_RegName_e
@@ -137,7 +137,7 @@ typedef enum tagCpu_FlagName_e
 /** CPU Info */
 typedef struct tagCpu_Info_t
 {
-    Reg16_t Reg[CPU_REG_NUM];   /**< Internal Register */
+    Cpu_Reg16_t Reg[CPU_REG_NUM];   /**< Internal Register */
 } Cpu_Info_t;
 
 /* Forward declaration for Cpu_Callback_t definition */
