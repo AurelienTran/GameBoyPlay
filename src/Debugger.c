@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <Memory.h>
+#include <Debugger.h>
 #include <Cpu.h>
 
 
@@ -120,6 +121,8 @@ static void Debugger_CommandHelp(int argc, char const * argv[]);
 
 /* Shell utility */
 static char * Debugger_GetUserInput(char * buffer);
+static void Debugger_PrintState(void);
+
 
 /******************************************************/
 /* Variable                                           */
@@ -306,6 +309,7 @@ void Debugger_NotifyPcChange(uint16_t addr)
     }
 }
 
+
 void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
 {
     for(int i=0; i<Debugger_Info.WatchListCount; i++)
@@ -319,6 +323,80 @@ void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
             return;
         }
     }
+}
+
+
+/**
+ * Print the following information:
+ * ┌────────┬──────────────────────────────────────────────────┐
+ * │ Memory │ 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f │
+ * ├────────┼──────────────────────────────────────────────────┤
+ * │ 0x0000 │ 31 fe ff af 21 ff 9f 32  cb 7c 20 fb 21 26 ff 0e │
+ * │ 0x0010 │ 11 3e 80 32 e2 0c 3e f3  e2 32 3e 77 77 3e fc e0 │
+ * │ 0x0020 │ 47 11 04 01 21 10 80 1a  cd 95 00 cd 96 00 13 7b │
+ * │ 0x0030 │ FE 34 20 F3 11 D8 00 06  08 1A 13 22 23 05 20 F9 │
+ * │ 0x0040 │ 3e 19 ea 10 99 21 2f 99  0e 0c 3d 28 08 32 0d 20 │
+ * └────────┴──────────────────────────────────────────────────┘
+ * ┌──────────────┐ ┌──────────────────────────────────────────┐
+ * │ CPU Register │ │ Program                                  │
+ * ├────┬─────────┤ ├──────────┬────────────────────┬──────────┤
+ * │ AF │ 0x3b80  │ │ o 0x0000 │ LD SP,0xfffe       │ 31 fe ff │
+ * │ BC │ 0x8012  │ │   0x0003 │ XOR A              │ af       │
+ * │ DE │ 0x2528  │ │   0x0004 │ LD HL,0x9fff       │ 21 ff 9f │
+ * │ HL │ 0xff45  │ │ o 0x0007 │ LD (HL-),A         │ 32       │
+ * │ SP │ 0xfffe  │ │   0x0008 │ BIT 7,H            │ cb 7c    │
+ * │ PC │ 0x0000  │ │   0x000a │ JR NZ,-5           │ 20 fb    │
+ * └────┴─────────┘ └──────────┴────────────────────┴──────────┘
+ */
+static void Debugger_PrintState(void)
+{
+    /* Prepare Cpu data */
+    char const *cpu_reg[CPU_REG_NUM];
+    uint16_t    cpu_val[CPU_REG_NUM];
+    cpu_reg[0] = "AF"; cpu_val[0] = CPU_REG16(CPU_R_AF)->UWord;
+    cpu_reg[1] = "BC"; cpu_val[1] = CPU_REG16(CPU_R_BC)->UWord;
+    cpu_reg[2] = "DE"; cpu_val[2] = CPU_REG16(CPU_R_DE)->UWord;
+    cpu_reg[3] = "HL"; cpu_val[3] = CPU_REG16(CPU_R_HL)->UWord;
+    cpu_reg[4] = "SP"; cpu_val[4] = CPU_REG16(CPU_R_SP)->UWord;
+    cpu_reg[5] = "PC"; cpu_val[5] = CPU_REG16(CPU_R_PC)->UWord;
+
+    /* Prepare Prog data */
+    char      prog_attr[CPU_REG_NUM];
+    uint16_t  prog_addr[CPU_REG_NUM];
+    char     *prog_opcode[CPU_REG_NUM];
+    char     *prog_byte[CPU_REG_NUM];
+
+
+    /* Print memory header */
+    printf("┌────────┬──────────────────────────────────────────────────┐\n");
+    printf("│ Memory │ 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f │\n");
+    printf("├────────┼──────────────────────────────────────────────────┤\n");
+
+    /* Print memory */
+    printf("│ 0x0000 │ 31 FE FF AF 21 FF 9F 32  CB 7C 20 FB 21 26 FF 0E │\n");
+    printf("│ 0x0010 │ 11 3E 80 32 E2 0C 3E F3  E2 32 3E 77 77 3E FC E0 │\n");
+    printf("│ 0x0020 │ 47 11 04 01 21 10 80 1A  CD 95 00 CD 96 00 13 7B │\n");
+    printf("│ 0x0030 │ FE 34 20 F3 11 D8 00 06  08 1A 13 22 23 05 20 F9 │\n");
+    printf("│ 0x0040 │ 3E 19 EA 10 99 21 2F 99  0E 0C 3D 28 08 32 0D 20 │\n");
+
+    /* Print memory footer */
+    printf("└────────┴──────────────────────────────────────────────────┘\n");
+
+    /* Print CPU and Program footer */
+    printf("┌──────────────┐ ┌──────────────────────────────────────────┐\n");
+    printf("│ CPU Register │ │ Program                                  │\n");
+    printf("├────┬─────────┤ ├──────────┬───────────────────────────────┤\n");
+
+    /* Print CPU and Program */
+    printf("│ AF │ 0x3~80  │ │ * 0x0000 │ LD SP,0xfffe       [31 fe ff] │\n");
+    printf("│ BC │ 0x8012  │ │   0x0003 │ XOR A              [AF      ] │\n");
+    printf("│ DE │ 0x2528  │ │   0x0004 │ LD HL,0x9fff       [21 ff 9f] │\n");
+    printf("│ HL │ 0xff45  │ │   0x0007 │ LD (HL-),A         [32      ] │\n");
+    printf("│ SP │ 0xfffe  │ │   0x0008 │ BIT 7,H            [cb 7c   ] │\n");
+    printf("│ PC │ 0x0000  │ │   0x000a │ JR NZ,-5           [20 fb   ] │\n");
+
+    /* Print CPU and Program footer */
+    printf("└────┴─────────┘ └──────────┴───────────────────────────────┘\n");
 }
 
 
