@@ -1,5 +1,5 @@
 /**
- * PlayEmulator - Simple Gameboy emulator written in C.
+ * GameBoyPlay - Simple Gameboy emulator written in C.
  * Copyright (C) 2015 - Aurelien Tran <aurelien.tran@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 

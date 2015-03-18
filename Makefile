@@ -1,4 +1,4 @@
-TARGET=PlayEmulator
+TARGET=GameBoyPlay
 SOURCE=$(wildcard src/*.c)
 OBJECT=$(patsubst %.c, %.o, $(SOURCE))
 
