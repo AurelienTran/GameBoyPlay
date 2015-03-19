@@ -56,6 +56,9 @@
 /** Max number of watchpoint */
 #define DEBUGGER_WATCHPOINT_COUNT   16
 
+/** Memory print line count */
+#define DEBUGGER_MEM_LINE_COUNT     4
+
 
 /******************************************************/
 /* Type                                               */
@@ -335,7 +338,6 @@ void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
  * │ 0x0010 │ 11 3e 80 32 e2 0c 3e f3  e2 32 3e 77 77 3e fc e0 │
  * │ 0x0020 │ 47 11 04 01 21 10 80 1a  cd 95 00 cd 96 00 13 7b │
  * │ 0x0030 │ FE 34 20 F3 11 D8 00 06  08 1A 13 22 23 05 20 F9 │
- * │ 0x0040 │ 3e 19 ea 10 99 21 2f 99  0e 0c 3d 28 08 32 0d 20 │
  * └────────┴──────────────────────────────────────────────────┘
  * ┌──────────────┐ ┌──────────────────────────────────────────┐
  * │ CPU Register │ │ Program                                  │
@@ -350,50 +352,44 @@ void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
  */
 static void Debugger_PrintState(void)
 {
-    /* Prepare Cpu data */
-    char const *cpu_reg[CPU_REG_NUM];
-    uint16_t    cpu_val[CPU_REG_NUM];
-    cpu_reg[0] = "AF"; cpu_val[0] = CPU_REG16(CPU_R_AF)->UWord;
-    cpu_reg[1] = "BC"; cpu_val[1] = CPU_REG16(CPU_R_BC)->UWord;
-    cpu_reg[2] = "DE"; cpu_val[2] = CPU_REG16(CPU_R_DE)->UWord;
-    cpu_reg[3] = "HL"; cpu_val[3] = CPU_REG16(CPU_R_HL)->UWord;
-    cpu_reg[4] = "SP"; cpu_val[4] = CPU_REG16(CPU_R_SP)->UWord;
-    cpu_reg[5] = "PC"; cpu_val[5] = CPU_REG16(CPU_R_PC)->UWord;
-
-    /* Prepare Prog data */
-    char      prog_attr[CPU_REG_NUM];
-    uint16_t  prog_addr[CPU_REG_NUM];
-    char     *prog_opcode[CPU_REG_NUM];
-    char     *prog_byte[CPU_REG_NUM];
-
-
     /* Print memory header */
     printf("┌────────┬──────────────────────────────────────────────────┐\n");
     printf("│ Memory │ 00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f │\n");
     printf("├────────┼──────────────────────────────────────────────────┤\n");
 
     /* Print memory */
-    printf("│ 0x0000 │ 31 FE FF AF 21 FF 9F 32  CB 7C 20 FB 21 26 FF 0E │\n");
-    printf("│ 0x0010 │ 11 3E 80 32 E2 0C 3E F3  E2 32 3E 77 77 3E FC E0 │\n");
-    printf("│ 0x0020 │ 47 11 04 01 21 10 80 1A  CD 95 00 CD 96 00 13 7B │\n");
-    printf("│ 0x0030 │ FE 34 20 F3 11 D8 00 06  08 1A 13 22 23 05 20 F9 │\n");
-    printf("│ 0x0040 │ 3E 19 EA 10 99 21 2F 99  0E 0C 3D 28 08 32 0D 20 │\n");
+    uint16_t mem_start = 0x0000 & 0xFFF0; /* @todo Get address to print */
+    uint16_t mem_end   = mem_start + (0x0010 * DEBUGGER_MEM_LINE_COUNT);
+    for(uint16_t i=mem_start; i<mem_end; i += 0x0010)
+    {
+        printf("│ 0x%04x │ ", i);
+        for(uint16_t j=0x0000; j<0x0008; j++)
+        {
+            printf("%02x ", Memory_Read(i + j));
+        }
+        printf(" ");
+        for(uint16_t j=0x0008; j<0x0010; j++)
+        {
+            printf("%02x ", Memory_Read(i + j));
+        }
+        printf("│\n");
+    }
 
-    /* Print memory footer */
+    /* Print memory footer and cpu/program header */
     printf("└────────┴──────────────────────────────────────────────────┘\n");
-
-    /* Print CPU and Program footer */
     printf("┌──────────────┐ ┌──────────────────────────────────────────┐\n");
     printf("│ CPU Register │ │ Program                                  │\n");
     printf("├────┬─────────┤ ├──────────┬───────────────────────────────┤\n");
 
-    /* Print CPU and Program */
-    printf("│ AF │ 0x3~80  │ │ * 0x0000 │ LD SP,0xfffe       [31 fe ff] │\n");
-    printf("│ BC │ 0x8012  │ │   0x0003 │ XOR A              [AF      ] │\n");
-    printf("│ DE │ 0x2528  │ │   0x0004 │ LD HL,0x9fff       [21 ff 9f] │\n");
-    printf("│ HL │ 0xff45  │ │   0x0007 │ LD (HL-),A         [32      ] │\n");
-    printf("│ SP │ 0xfffe  │ │   0x0008 │ BIT 7,H            [cb 7c   ] │\n");
-    printf("│ PC │ 0x0000  │ │   0x000a │ JR NZ,-5           [20 fb   ] │\n");
+    /* Print Cpu data and Program data */
+    char const *cpu_reg[CPU_REG_NUM] = {"AF", "BC", "DE", "HL", "SP", "PC"};
+    uint16_t    cpu_pc = CPU_REG16(CPU_R_PC)->UWord;
+    for(int i=0; i<CPU_REG_NUM; i++)
+    {
+        printf("│ %2s │ 0x%04x  │ ", cpu_reg[i], CPU_REG16(i)->UWord);
+        printf("│ %c ", true ? 'o':' '); /* @todo check if pc is break point */
+        printf("0x%04x │\n", cpu_pc);
+    }
 
     /* Print CPU and Program footer */
     printf("└────┴─────────┘ └──────────┴───────────────────────────────┘\n");
@@ -433,7 +429,7 @@ static void Debugger_CommandStep(int argc, char const * argv[])
     }
 
     /* Display CPU after stepping */
-    Cpu_Print();
+    Debugger_PrintState();
 }
 
 /**
@@ -443,7 +439,7 @@ static void Debugger_CommandRun(int argc, char const * argv[])
 {
     /* Unused param */
     (void) argc;
-	(void) argv;
+    (void) argv;
 
     while(Debugger_Info.State == DEBUGGER_STATE_RUN)
     {
@@ -451,7 +447,7 @@ static void Debugger_CommandRun(int argc, char const * argv[])
     }
 
     /* Display CPU after stepping */
-    Cpu_Print();
+    Debugger_PrintState();
 }
 
 /**
@@ -461,7 +457,7 @@ static void Debugger_CommandReset(int argc, char const * argv[])
 {
     /* Unused param */
     (void) argc;
-	(void) argv;
+    (void) argv;
 
     /* @todo find a better way to do it */
     Memory_Initialize();
@@ -595,7 +591,7 @@ static void Debugger_CommandClear(int argc, char const * argv[])
 {
     /* Unused parameter */
     (void) argc;
-	(void) argv;
+    (void) argv;
 
     Debugger_Info.WatchListCount = 0;
     Debugger_Info.BreakListCount = 0;
@@ -640,10 +636,10 @@ static void Debugger_CommandCpu(int argc, char const * argv[])
 {
     /* Unused parameter */
     (void) argc;
-	(void) argv;
+    (void) argv;
 
     /* Print CPU */
-    Cpu_Print();
+    Debugger_PrintState();
 }
 
 /**
@@ -653,7 +649,7 @@ static void Debugger_CommandHelp(int argc, char const * argv[])
 {
     /* Unused parameter */
     (void) argc;
-	(void) argv;
+    (void) argv;
 
     /* Print help */
     printf("------------------------------------------------------------------------\n");
@@ -674,7 +670,7 @@ static void Debugger_CommandQuit(int argc, char const * argv[])
 {
     /* Unused parameter */
     (void) argc;
-	(void) argv;
+    (void) argv;
 
     /* Make the program exit */
     Debugger_Info.State = DEBUGGER_STATE_EXIT;
