@@ -123,8 +123,9 @@ static void Debugger_CommandCpu(int argc, char const * argv[]);
 static void Debugger_CommandQuit(int argc, char const * argv[]);
 static void Debugger_CommandHelp(int argc, char const * argv[]);
 
-/* Shell utility */
+/* Utility */
 static char * Debugger_GetUserInput(char * buffer);
+static bool Debugger_IsBreakpoint(uint16_t addr);
 static void Debugger_PrintState(void);
 
 
@@ -330,6 +331,20 @@ void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
 }
 
 
+static bool Debugger_IsBreakpoint(uint16_t addr)
+{
+    for(int i=0; i<Debugger_Info.BreakListCount; i++)
+    {
+        if(addr == Debugger_Info.BreakListAddr[i])
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 /**
  * Print the following information:
  * ┌────────┬──────────────────────────────────────────────────┐
@@ -388,7 +403,7 @@ static void Debugger_PrintState(void)
     for(int i=0; i<CPU_REG_NUM; i++)
     {
         printf("│ %2s │ 0x%04x  │ ", cpu_reg[i], CPU_REG16(i)->UWord);
-        printf("│ %c ", true ? 'o':' '); /* @todo check if pc is break point */
+        printf("│ %c ", Debugger_IsBreakpoint(cpu_pc) ? 'o':' ');
         printf("0x%04x │\n", cpu_pc);
     }
 
