@@ -98,6 +98,7 @@ typedef enum tagDebugger_State_e
 typedef struct tagDebugger_Info_t
 {
     Debugger_State_e State;                             /**< Debugger state */
+    int MemoryAddress;                                  /**< Memory address to display */
     int BreakListCount;                                 /**< Breakpoint set count */
     int WatchListCount;                                 /**< Watchpoint set count */
     uint16_t BreakListAddr[DEBUGGER_BREAKPOINT_COUNT];  /**< Breakpoint list */
@@ -358,7 +359,7 @@ static void Debugger_PrintState(void)
     printf("├────────┼──────────────────────────────────────────────────┤\n");
 
     /* Print memory */
-    uint16_t mem_start = 0x0000 & 0xFFF0; /* @todo Get address to print */
+    uint16_t mem_start = Debugger_Info.MemoryAddress & 0xFFF0;
     uint16_t mem_end   = mem_start + (0x0010 * DEBUGGER_MEM_LINE_COUNT);
     for(uint16_t i=mem_start; i<mem_end; i += 0x0010)
     {
@@ -614,19 +615,9 @@ static void Debugger_CommandMem(int argc, char const * argv[])
 
     /* Get the memory addresss and size */
     uint16_t addr = (uint16_t)strtol(argv[1], NULL, 0);
-    int size = 1;
 
-    if(argc == 3)
-    {
-        size = strtol(argv[2], NULL, 0);
-    }
-
-    /* Print Memory area */
-    printf("Memory:\n");
-    for(int i=0; i<size; i++)
-    {
-        printf("#0x%04x: 0x%02x\n", addr + i, Memory_Read(addr + i));
-    }
+    Debugger_Info.MemoryAddress = addr;
+    Debugger_PrintState();
 }
 
 /**
