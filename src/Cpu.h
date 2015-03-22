@@ -135,6 +135,14 @@ extern void Cpu_Print(void);
  */
 inline uint16_t Cpu_GetProgramCounter(void);
 
+/**
+ * Get instruction opcode string and byte length
+ * @param addr The opcode address
+ * @param buffer The string buffer address
+ * @param size The size pointer
+ */
+extern void Cpu_GetOpcodeInfo(uint16_t addr, char *buffer, int *size);
+
 
 /******************************************************/
 /* Variable                                           */

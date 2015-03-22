@@ -395,20 +395,29 @@ static void Debugger_PrintState(void)
     printf("└────────┴──────────────────────────────────────────────────┘\n");
     printf("┌──────────────┐ ┌──────────────────────────────────────────┐\n");
     printf("│ CPU Register │ │ Program                                  │\n");
-    printf("├────┬─────────┤ ├──────────┬───────────────────────────────┤\n");
+    printf("├────┬─────────┤ ├──────────┬────────────────────┬──────────┤\n");
 
     /* Print Cpu data and Program data */
     char const *cpu_reg[CPU_REG_NUM] = {"AF", "BC", "DE", "HL", "SP", "PC"};
     uint16_t    cpu_pc = CPU_REG16(CPU_R_PC)->UWord;
     for(int i=0; i<CPU_REG_NUM; i++)
     {
+        /* CPU */
         printf("│ %2s │ 0x%04x  │ ", cpu_reg[i], CPU_REG16(i)->UWord);
+
+        /* Program */
+        char buffer[DEBUGGER_BUFFER_SIZE];
+        int size;
+        Cpu_GetOpcodeInfo(cpu_pc, buffer, &size);
         printf("│ %c ", Debugger_IsBreakpoint(cpu_pc) ? 'o':' ');
-        printf("0x%04x │\n", cpu_pc);
+        printf("0x%04x │", cpu_pc);
+        printf(" %-18s │\n", buffer);
+
+        cpu_pc += size;
     }
 
     /* Print CPU and Program footer */
-    printf("└────┴─────────┘ └──────────┴───────────────────────────────┘\n");
+    printf("└────┴─────────┘ └──────────┴────────────────────┴──────────┘\n");
 }
 
 

@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <string.h>
 #include <Cpu.h>
 #include <Memory.h>
 #include <Debugger.h>
@@ -365,7 +366,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0xC8, 1, "RET Z",                      CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xC9, 1, "RET\n",                      CPU_NULL, CPU_NULL, Cpu_Execute_RET},
     {0xCA, 3, "JP Z,a16",                   CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
-    {0xCB, 1, "PREFIX CB\n",                CPU_NULL, CPU_NULL, Cpu_Execute_PREFIX_CB},
+    {0xCB, 2, "PREFIX CB\n",                CPU_NULL, CPU_NULL, Cpu_Execute_PREFIX_CB},
     {0xCC, 3, "CALL Z,0x%04X\n",            CPU_F_Z,  CPU_F_Z,  Cpu_Execute_CALL_F_NN},
     {0xCD, 3, "CALL 0x%04X\n",              CPU_F_NO, CPU_F_NO, Cpu_Execute_CALL_F_NN},
     {0xCE, 2, "ADC A,d8",                   CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
@@ -727,6 +728,16 @@ static inline uint8_t Cpu_ReadPc(void)
     Debugger_NotifyPcChange(pc + 1);
 
     return data;
+}
+
+
+void Cpu_GetOpcodeInfo(uint16_t addr, char *buffer, int *size)
+{
+    uint8_t const data = Memory_Read(addr);
+    Cpu_OpCode_t const * opcode = &Cpu_OpCode[data];
+    /* @todo implement a way to retrieve string */
+    strcpy(buffer, "TODO");
+    *size = opcode->Size;
 }
 
 
