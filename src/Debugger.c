@@ -411,8 +411,20 @@ static void Debugger_PrintState(void)
         Cpu_GetOpcodeInfo(cpu_pc, buffer, &size);
         printf("│ %c ", Debugger_IsBreakpoint(cpu_pc) ? 'o':' ');
         printf("0x%04x │", cpu_pc);
-        printf(" %-18s │\n", buffer);
+        printf(" %-18s │ ", buffer);
 
+        /* Print opcode byte */
+        for(int j=0; j<size; j++)
+        {
+            printf("%02x ", Memory_Read(cpu_pc + j));
+        }
+        for(int j=size; j<3; j++)
+        {
+            printf("   ");
+        }
+        printf("│\n");
+
+        /* Go to the next opcode address */
         cpu_pc += size;
     }
 
