@@ -101,13 +101,6 @@ extern void Debugger_RunShell(int argc, char const *argv[]);
  */
 extern void Debugger_Log(char const *fmt, ...);
 
-/**
- * Notify Memory change for watchpoint
- * @param addr The memory address where change occured
- * @param data The data written to addr
- */
-extern void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data);
-
 
 /******************************************************/
 /* Variable                                           */
