@@ -125,11 +125,6 @@ extern void Cpu_Initialize(void);
 extern uint32_t Cpu_Step(void);
 
 /**
- * Print CPU internal state for debug purpose
- */
-extern void Cpu_Print(void);
-
-/**
  * Get PC register
  * @return CPU PC register
  */

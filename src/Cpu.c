@@ -706,18 +706,6 @@ uint32_t Cpu_Step(void)
 }
 
 
-void Cpu_Print(void)
-{
-    DEBUGGER_INFO("CPU Register:\n");
-    DEBUGGER_INFO("#AF: 0x%04X\n", CPU_REG16(CPU_R_AF)->UWord);
-    DEBUGGER_INFO("#BC: 0x%04X\n", CPU_REG16(CPU_R_BC)->UWord);
-    DEBUGGER_INFO("#DE: 0x%04X\n", CPU_REG16(CPU_R_DE)->UWord);
-    DEBUGGER_INFO("#HL: 0x%04X\n", CPU_REG16(CPU_R_HL)->UWord);
-    DEBUGGER_INFO("#SP: 0x%04X\n", CPU_REG16(CPU_R_SP)->UWord);
-    DEBUGGER_INFO("#PC: 0x%04X\n", CPU_REG16(CPU_R_PC)->UWord);
-}
-
-
 static inline uint8_t Cpu_ReadPc(void)
 {
     uint16_t const pc = CPU_REG16(CPU_R_PC)->UWord;
@@ -748,7 +736,13 @@ void Cpu_GetOpcodeInfo(uint16_t addr, char *buffer, int *size)
  */
 static int Cpu_Execute_Unimplemented(Cpu_OpCode_t const * const opcode)
 {
-    Cpu_Print();
+    DEBUGGER_INFO("CPU Register:\n");
+    DEBUGGER_INFO("#AF: 0x%04X\n", CPU_REG16(CPU_R_AF)->UWord);
+    DEBUGGER_INFO("#BC: 0x%04X\n", CPU_REG16(CPU_R_BC)->UWord);
+    DEBUGGER_INFO("#DE: 0x%04X\n", CPU_REG16(CPU_R_DE)->UWord);
+    DEBUGGER_INFO("#HL: 0x%04X\n", CPU_REG16(CPU_R_HL)->UWord);
+    DEBUGGER_INFO("#SP: 0x%04X\n", CPU_REG16(CPU_R_SP)->UWord);
+    DEBUGGER_INFO("#PC: 0x%04X\n", CPU_REG16(CPU_R_PC)->UWord);
     DEBUGGER_INFO("Unimplemented Opcode 0x%02X: %s\n", opcode->Value, opcode->Name);
     assert(0);
     return 0;
