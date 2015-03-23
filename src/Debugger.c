@@ -301,20 +301,6 @@ void Debugger_Log(char const *fmt, ...)
 }
 
 
-void Debugger_NotifyPcChange(uint16_t addr)
-{
-    for(int i=0; i<Debugger_Info.BreakListCount; i++)
-    {
-        if(addr == Debugger_Info.BreakListAddr[i])
-        {
-            Debugger_Info.State = DEBUGGER_STATE_BREAK;
-            printf("Breakpoint: 0x%04X\n", addr);
-            return;
-        }
-    }
-}
-
-
 void Debugger_NotifyMemoryWrite(uint16_t addr, uint8_t data)
 {
     for(int i=0; i<Debugger_Info.WatchListCount; i++)
@@ -459,7 +445,7 @@ static void Debugger_CommandStep(int argc, char const * argv[])
     {
         Cpu_Step();
 
-        if(Debugger_Info.State == DEBUGGER_STATE_BREAK)
+        if(Debugger_IsBreakpoint(CPU_REG16(CPU_R_PC)->UWord))
         {
             break;
         }
@@ -470,7 +456,7 @@ static void Debugger_CommandStep(int argc, char const * argv[])
 }
 
 /**
- * Run the program until breakpoint/watchpoint
+ * Run the program until breakpoint
  */
 static void Debugger_CommandRun(int argc, char const * argv[])
 {
@@ -478,9 +464,14 @@ static void Debugger_CommandRun(int argc, char const * argv[])
     (void) argc;
     (void) argv;
 
-    while(Debugger_Info.State == DEBUGGER_STATE_RUN)
+    for(;;)
     {
         Cpu_Step();
+
+        if(Debugger_IsBreakpoint(CPU_REG16(CPU_R_PC)->UWord))
+        {
+            break;
+        }
     }
 
     /* Display CPU after stepping */
