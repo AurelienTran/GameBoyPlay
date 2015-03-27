@@ -28,7 +28,6 @@
 
 #include <assert.h>
 #include <stdint.h>
-#include <string.h>
 #include <Cpu.h>
 #include <Memory.h>
 #include <Debugger.h>
@@ -140,6 +139,7 @@ static int Cpu_Execute_CP_N(Cpu_OpCode_t const * const opcode);
 
 /* 16 bit Arithmetic/Logical Command */
 static int Cpu_Execute_INC_RR(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_DEC_RR(Cpu_OpCode_t const * const opcode);
 
 /* 8 bit Rotation/Shift/Bit Command */
 static int Cpu_Execute_BIT_N_R(Cpu_OpCode_t const * const opcode);
@@ -174,7 +174,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x08, 3, "LD (a16),SP",                CPU_NULL, CPU_R_SP, Cpu_Execute_Unimplemented},
     {0x09, 1, "ADD HL,BC",                  CPU_R_HL, CPU_R_BC, Cpu_Execute_Unimplemented},
     {0x0A, 1, "LD A,(BC)\n",                CPU_R_A,  CPU_R_BC, Cpu_Execute_LD_R_pRR},
-    {0x0B, 1, "DEC BC",                     CPU_R_BC, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x0B, 1, "DEC BC",                     CPU_R_BC, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x0C, 1, "INC C\n",                    CPU_R_C,  CPU_NULL, Cpu_Execute_INC_R},
     {0x0D, 1, "DEC C\n",                    CPU_R_C,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x0E, 2, "LD C,0x%02X\n",              CPU_R_C,  CPU_NULL, Cpu_Execute_LD_R_N},
@@ -190,7 +190,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x18, 2, "JR %d\n",                    CPU_F_NO, CPU_F_NO, Cpu_Execute_JR_F_N},
     {0x19, 1, "ADD HL,DE",                  CPU_R_HL, CPU_R_DE, Cpu_Execute_Unimplemented},
     {0x1A, 1, "LD A,(DE)\n",                CPU_R_A,  CPU_R_DE, Cpu_Execute_LD_R_pRR},
-    {0x1B, 1, "DEC DE",                     CPU_R_DE, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x1B, 1, "DEC DE",                     CPU_R_DE, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x1C, 1, "INC E\n",                    CPU_R_E,  CPU_NULL, Cpu_Execute_INC_R},
     {0x1D, 1, "DEC E\n",                    CPU_R_E,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x1E, 2, "LD E,0x%02X\n",              CPU_R_E,  CPU_NULL, Cpu_Execute_LD_R_N},
@@ -206,7 +206,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x28, 2, "JR Z,%d\n",                  CPU_F_Z,  CPU_F_Z,  Cpu_Execute_JR_F_N},
     {0x29, 1, "ADD HL,HL",                  CPU_R_HL, CPU_R_HL, Cpu_Execute_Unimplemented},
     {0x2A, 1, "LD A,(HL+)",                 CPU_R_A,  CPU_R_HL, Cpu_Execute_Unimplemented},
-    {0x2B, 1, "DEC HL",                     CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x2B, 1, "DEC HL",                     CPU_R_HL, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x2C, 1, "INC L\n",                    CPU_R_L,  CPU_NULL, Cpu_Execute_INC_R},
     {0x2D, 1, "DEC L\n",                    CPU_R_L,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x2E, 2, "LD L,0x%02X\n",              CPU_R_L,  CPU_NULL, Cpu_Execute_LD_R_N},
@@ -222,7 +222,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x38, 2, "JR C,%d\n",                  CPU_F_C,  CPU_F_C,  Cpu_Execute_JR_F_N},
     {0x39, 1, "ADD HL,SP",                  CPU_R_HL, CPU_R_SP, Cpu_Execute_Unimplemented},
     {0x3A, 1, "LD A,(HL-)",                 CPU_R_A,  CPU_R_HL, Cpu_Execute_Unimplemented},
-    {0x3B, 1, "DEC SP",                     CPU_R_SP, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x3B, 1, "DEC SP",                     CPU_R_SP, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x3C, 1, "INC A\n",                    CPU_R_A,  CPU_NULL, Cpu_Execute_INC_R},
     {0x3D, 1, "DEC A\n",                    CPU_R_A,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x3E, 2, "LD A,0x%02X\n",              CPU_R_A,  CPU_NULL, Cpu_Execute_LD_R_N},
@@ -1217,6 +1217,23 @@ static int Cpu_Execute_INC_RR(Cpu_OpCode_t const * const opcode)
     /* Execute the command */
     uint16_t const data = CPU_REG16(opcode->Param0)->UWord;
     uint16_t const result = data + 1;
+    CPU_REG16(opcode->Param0)->UWord = result;
+
+    return 8;
+}
+
+
+/**
+ * OpCode: DEC RR
+ * Size:1, Duration:8, ZNHC Flag:----
+ */
+static int Cpu_Execute_DEC_RR(Cpu_OpCode_t const * const opcode)
+{
+    DEBUGGER_TRACE(opcode->Name);
+
+    /* Execute the command */
+    uint16_t const data = CPU_REG16(opcode->Param0)->UWord;
+    uint16_t const result = data - 1;
     CPU_REG16(opcode->Param0)->UWord = result;
 
     return 8;
