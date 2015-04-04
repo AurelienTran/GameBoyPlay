@@ -414,7 +414,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0xED, 1, "UNKNOWN",            CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xEE, 2, "XOR 0x%02x",         CPU_P_UBYTE, CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0xEF, 1, "RST 28H",            CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
-    {0xF0, 2, "LDH A,(0x%02x)",     CPU_P_UBYTE, CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
+    {0xF0, 2, "LD A,(0xff%02x)",    CPU_P_UBYTE, CPU_R_A,  CPU_NULL, Cpu_Execute_Unimplemented},
     {0xF1, 1, "POP AF",             CPU_P_NONE,  CPU_R_AF, CPU_NULL, Cpu_Execute_POP_RR},
     {0xF2, 2, "LD A,(C)",           CPU_P_NONE,  CPU_R_A,  CPU_R_C,  Cpu_Execute_Unimplemented},
     {0xF3, 1, "DI",                 CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
@@ -824,8 +824,6 @@ static int Cpu_Execute_CALL_F_NN(Cpu_OpCode_t const * const opcode)
     uint8_t const data0 = Cpu_ReadPc();
     uint8_t const data1 = Cpu_ReadPc();
 
-    DEBUGGER_TRACE(opcode->Name, CONCAT(data0, data1));
-
     /* Execute the command */
     uint8_t mask = opcode->Param0;
     uint8_t compare = opcode->Param1;
@@ -857,8 +855,6 @@ static int Cpu_Execute_JR_F_N(Cpu_OpCode_t const * const opcode)
 {
     /* Get instruction */
     int8_t const data = Cpu_ReadPc();
- 
-    DEBUGGER_TRACE(opcode->Name, data);
 
     /* Execute the command */
     uint8_t mask = opcode->Param0;
@@ -879,7 +875,8 @@ static int Cpu_Execute_JR_F_N(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_RET(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
+    /* Unused parameter */
+    (void) opcode;
 
     /* Execute the command */
     uint16_t const sp = CPU_REG16(CPU_R_SP)->UWord;
@@ -903,8 +900,6 @@ static int Cpu_Execute_RET(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_LD_R_pRR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint16_t const addr = CPU_REG16(opcode->Param1)->UWord;
     uint8_t const data = Memory_Read(addr);
@@ -920,8 +915,6 @@ static int Cpu_Execute_LD_R_pRR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_LD_R_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
     CPU_REG8(opcode->Param0)->UByte = data;
@@ -939,8 +932,6 @@ static int Cpu_Execute_LD_R_N(Cpu_OpCode_t const * const opcode)
     /* Get instruction */
     uint8_t const data = Cpu_ReadPc();
 
-    DEBUGGER_TRACE(opcode->Name, data);
-
     /* Execute the command */
     CPU_REG8(opcode->Param0)->UByte = data;
 
@@ -957,8 +948,6 @@ static int Cpu_Execute_LD_pNN_R(Cpu_OpCode_t const * const opcode)
     /* Get instruction */
     uint8_t const data0 = Cpu_ReadPc();
     uint8_t const data1 = Cpu_ReadPc();
-
-    DEBUGGER_TRACE(opcode->Name, CONCAT(data0, data1));
 
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
@@ -978,8 +967,6 @@ static int Cpu_Execute_LD_pN_R(Cpu_OpCode_t const * const opcode)
     /* Get instruction */
     uint8_t const addrOffset = Cpu_ReadPc();
 
-    DEBUGGER_TRACE(opcode->Name, addrOffset);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
     uint16_t const addr = 0xFF00 + addrOffset;
@@ -995,8 +982,6 @@ static int Cpu_Execute_LD_pN_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_LD_pR_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
     uint16_t const addr = 0xFF00 + CPU_REG8(opcode->Param0)->UByte;
@@ -1012,8 +997,6 @@ static int Cpu_Execute_LD_pR_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_LD_pRR_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
     uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
@@ -1029,8 +1012,6 @@ static int Cpu_Execute_LD_pRR_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_LDD_pRR_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
     uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
@@ -1047,8 +1028,6 @@ static int Cpu_Execute_LDD_pRR_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_LDI_pRR_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
     uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
@@ -1074,8 +1053,6 @@ static int Cpu_Execute_LD_RR_NN(Cpu_OpCode_t const * const opcode)
     uint8_t const data0 = Cpu_ReadPc();
     uint8_t const data1 = Cpu_ReadPc();
 
-    DEBUGGER_TRACE(opcode->Name, CONCAT(data0, data1));
-
     /* Execute the command */
     CPU_REG16(opcode->Param0)->Byte[0].UByte = data0;
     CPU_REG16(opcode->Param0)->Byte[1].UByte = data1;
@@ -1090,8 +1067,6 @@ static int Cpu_Execute_LD_RR_NN(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_PUSH_RR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const rr0 = CPU_REG16(opcode->Param0)->Byte[0].UByte;
     uint8_t const rr1 = CPU_REG16(opcode->Param0)->Byte[1].UByte;
@@ -1110,8 +1085,6 @@ static int Cpu_Execute_PUSH_RR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint16_t const sp = CPU_REG16(CPU_R_SP)->UWord;
     uint8_t data0 = Memory_Read(sp);
@@ -1134,8 +1107,6 @@ static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_INC_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param0)->UByte;
     uint8_t const result = data + 1;
@@ -1162,8 +1133,6 @@ static int Cpu_Execute_INC_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_DEC_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param0)->UByte;
     uint8_t const result = data - 1;
@@ -1191,8 +1160,6 @@ static int Cpu_Execute_DEC_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_XOR_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const dataA = CPU_REG8(CPU_R_A)->UByte;
     uint8_t const dataR = CPU_REG8(opcode->Param0)->UByte;
@@ -1216,10 +1183,11 @@ static int Cpu_Execute_XOR_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_CP_N(Cpu_OpCode_t const * const opcode)
 {
+    /* Unused parameter */
+    (void) opcode;
+
     /* Get instruction */
     uint8_t const data = Cpu_ReadPc();
-
-    DEBUGGER_TRACE(opcode->Name, data);
 
     /* Execute the command */
     uint8_t const dataA = CPU_REG8(CPU_R_A)->UByte;
@@ -1255,8 +1223,6 @@ static int Cpu_Execute_CP_N(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_INC_RR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint16_t const data = CPU_REG16(opcode->Param0)->UWord;
     uint16_t const result = data + 1;
@@ -1272,8 +1238,6 @@ static int Cpu_Execute_INC_RR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_DEC_RR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint16_t const data = CPU_REG16(opcode->Param0)->UWord;
     uint16_t const result = data - 1;
@@ -1293,8 +1257,6 @@ static int Cpu_Execute_DEC_RR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_BIT_N_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const mask = opcode->Param0;
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
@@ -1318,8 +1280,6 @@ static int Cpu_Execute_BIT_N_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_BIT_N_pRR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const mask = opcode->Param0;
     uint16_t const addr = CPU_REG16(opcode->Param1)->UWord;
@@ -1344,8 +1304,6 @@ static int Cpu_Execute_BIT_N_pRR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_SET_N_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const mask = opcode->Param0;
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
@@ -1362,8 +1320,6 @@ static int Cpu_Execute_SET_N_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_SET_N_pRR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const mask = opcode->Param0;
     uint16_t const addr = CPU_REG16(opcode->Param1)->UWord;
@@ -1381,8 +1337,6 @@ static int Cpu_Execute_SET_N_pRR(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_RES_N_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const mask = opcode->Param0;
     uint8_t const data = CPU_REG8(opcode->Param1)->UByte;
@@ -1399,8 +1353,6 @@ static int Cpu_Execute_RES_N_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_RES_N_pRR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const mask = opcode->Param0;
     uint16_t const addr = CPU_REG16(opcode->Param1)->UWord;
@@ -1420,8 +1372,6 @@ static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode)
 {
     /* Unused parameter */
     (void) opcode;
-
-    DEBUGGER_TRACE(opcode->Name);
 
     /* Execute the command */
     uint8_t const data = CPU_REG8(CPU_R_A)->UByte;
@@ -1446,8 +1396,6 @@ static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_RL_R(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint8_t const data = CPU_REG8(opcode->Param0)->UByte;
     uint8_t const carry = CPU_FLAG_CHECK(CPU_F_C, CPU_F_C) ? 0x01 : 0x00;
@@ -1475,8 +1423,6 @@ static int Cpu_Execute_RL_R(Cpu_OpCode_t const * const opcode)
  */
 static int Cpu_Execute_RL_pRR(Cpu_OpCode_t const * const opcode)
 {
-    DEBUGGER_TRACE(opcode->Name);
-
     /* Execute the command */
     uint16_t const addr = CPU_REG16(opcode->Param0)->UWord;
     uint8_t const data = Memory_Read(addr);
