@@ -160,6 +160,7 @@ static int Cpu_Execute_SET_N_pRR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RES_N_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RES_N_pRR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_RLCA(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RL_R(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_RL_pRR(Cpu_OpCode_t const * const opcode);
 
@@ -181,7 +182,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x04, 1, "INC B",              CPU_P_NONE,  CPU_R_B,  CPU_NULL, Cpu_Execute_INC_R},
     {0x05, 1, "DEC B",              CPU_P_NONE,  CPU_R_B,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x06, 2, "LD B,0x%02x",        CPU_P_UBYTE, CPU_R_B,  CPU_NULL, Cpu_Execute_LD_R_N},
-    {0x07, 1, "RLCA",               CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x07, 1, "RLCA",               CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_RLCA},
     {0x08, 3, "LD (0x%04x),SP",     CPU_P_UWORD, CPU_NULL, CPU_R_SP, Cpu_Execute_Unimplemented},
     {0x09, 1, "ADD HL,BC",          CPU_P_NONE,  CPU_R_HL, CPU_R_BC, Cpu_Execute_Unimplemented},
     {0x0A, 1, "LD A,(BC)",          CPU_P_NONE,  CPU_R_A,  CPU_R_BC, Cpu_Execute_LD_R_pRR},
@@ -1377,6 +1378,31 @@ static int Cpu_Execute_RLA(Cpu_OpCode_t const * const opcode)
     uint8_t const data = CPU_REG8(CPU_R_A)->UByte;
     uint8_t const carry = CPU_FLAG_CHECK(CPU_F_C, CPU_F_C) ? 0x01 : 0x00;
     uint8_t const result = (data << 1) | carry;
+    CPU_REG8(CPU_R_A)->UByte = result;
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_ALL);
+    if((data & 0x80) == 0x80)
+    {
+        CPU_FLAG_SET(CPU_F_C);
+    }
+
+    return 4;
+}
+
+
+/**
+ * OpCode: RLCA
+ * Size:1, Duration:4, ZNHC Flag:000C
+ */
+static int Cpu_Execute_RLCA(Cpu_OpCode_t const * const opcode)
+{
+    /* Unused parameter */
+    (void) opcode;
+
+    /* Execute the command */
+    uint8_t const data = CPU_REG8(CPU_R_A)->UByte;
+    uint8_t const result = (data << 1) | (data >> 7);
     CPU_REG8(CPU_R_A)->UByte = result;
 
     /* Set up Flag */
