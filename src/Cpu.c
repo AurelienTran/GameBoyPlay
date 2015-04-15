@@ -139,6 +139,7 @@ static int Cpu_Execute_LDI_pRR_R(Cpu_OpCode_t const * const opcode);
 
 /* 16 bit Load/Move/Store Command */
 static int Cpu_Execute_LD_RR_NN(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_LD_pNN_RR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_PUSH_RR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode);
 
@@ -183,7 +184,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x05, 1, "DEC B",              CPU_P_NONE,  CPU_R_B,  CPU_NULL, Cpu_Execute_DEC_R},
     {0x06, 2, "LD B,0x%02x",        CPU_P_UBYTE, CPU_R_B,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x07, 1, "RLCA",               CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_RLCA},
-    {0x08, 3, "LD (0x%04x),SP",     CPU_P_UWORD, CPU_NULL, CPU_R_SP, Cpu_Execute_Unimplemented},
+    {0x08, 3, "LD (0x%04x),SP",     CPU_P_UWORD, CPU_NULL, CPU_R_SP, Cpu_Execute_LD_pNN_RR},
     {0x09, 1, "ADD HL,BC",          CPU_P_NONE,  CPU_R_HL, CPU_R_BC, Cpu_Execute_Unimplemented},
     {0x0A, 1, "LD A,(BC)",          CPU_P_NONE,  CPU_R_A,  CPU_R_BC, Cpu_Execute_LD_R_pRR},
     {0x0B, 1, "DEC BC",             CPU_P_NONE,  CPU_R_BC, CPU_NULL, Cpu_Execute_DEC_RR},
@@ -1060,6 +1061,28 @@ static int Cpu_Execute_LD_RR_NN(Cpu_OpCode_t const * const opcode)
 
     return 12;
 }
+
+
+/**
+ * OpCode: LD (NN),RR
+ * Size:3, Duration:20, ZNHC Flag:----
+ */
+static int Cpu_Execute_LD_pNN_RR(Cpu_OpCode_t const * const opcode)
+{
+    /* Get the opcde parameter */
+    uint8_t const addr0 = Cpu_ReadPc();
+    uint8_t const addr1 = Cpu_ReadPc();
+
+    /* Execute the command */
+    uint16_t const addr = CONCAT(addr0, addr1);
+    uint8_t const data0 = CPU_REG16(opcode->Param1)->Byte[0].UByte;
+    uint8_t const data1 = CPU_REG16(opcode->Param1)->Byte[1].UByte;
+    Memory_Write(addr  , data1);
+    Memory_Write(addr+1, data0);
+
+    return 20;
+}
+
 
 
 /**
