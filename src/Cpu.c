@@ -2,22 +2,22 @@
  * GameBoyPlay - Simple Gameboy emulator written in C.
  * Copyright (C) 2015 - Aurelien Tran <aurelien.tran@gmail.com>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy 
- * of this software and associated documentation files (the "Software"), to deal 
- * in the Software without restriction, including without limitation the rights 
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
- * copies of the Software, and to permit persons to whom the Software is 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in 
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
 
@@ -119,6 +119,7 @@ static inline uint8_t Cpu_ReadPc(void);
 
 /* Misc/Control Command */
 static int Cpu_Execute_Unimplemented(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_NOP(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_PREFIX_CB(Cpu_OpCode_t const * const opcode);
 
 /* Jump/Call Command */
@@ -176,7 +177,7 @@ Cpu_Info_t Cpu_Info;
 /** Callback table for each OpCode */
 static Cpu_OpCode_t const Cpu_OpCode[] =
 {
-    {0x00, 1, "NOP",                CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
+    {0x00, 1, "NOP",                CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_NOP},
     {0x01, 3, "LD BC,0x%04x",       CPU_P_UWORD, CPU_R_BC, CPU_NULL, Cpu_Execute_LD_RR_NN},
     {0x02, 1, "LD (BC),A",          CPU_P_NONE,  CPU_R_BC, CPU_R_A,  Cpu_Execute_LD_pRR_R},
     {0x03, 1, "INC BC",             CPU_P_NONE,  CPU_R_BC, CPU_NULL, Cpu_Execute_INC_RR},
@@ -796,6 +797,16 @@ static int Cpu_Execute_Unimplemented(Cpu_OpCode_t const * const opcode)
 /******************************************************/
 
 /**
+ * opcode: NOP
+ * size:1, duration:4, znhc flag:----
+ */
+static int Cpu_Execute_NOP(Cpu_OpCode_t const * const opcode)
+{
+    /* Do nothing */
+    return 4;
+}
+
+/**
  * Handle OpCode begining by 0xCB
  */
 static int Cpu_Execute_PREFIX_CB(Cpu_OpCode_t const * const opcode)
@@ -838,7 +849,7 @@ static int Cpu_Execute_CALL_F_NN(Cpu_OpCode_t const * const opcode)
         Memory_Write(sp - 1, pc1);
         Memory_Write(sp - 2, pc0);
         CPU_REG16(CPU_R_SP)->UWord = sp - 2;
-        
+
         /* Set PC to the call addr */
         CPU_REG16(CPU_R_PC)->Byte[0].UByte = data0;
         CPU_REG16(CPU_R_PC)->Byte[1].UByte = data1;
@@ -887,7 +898,7 @@ static int Cpu_Execute_RET(Cpu_OpCode_t const * const opcode)
     CPU_REG16(CPU_R_PC)->Byte[0].UByte = data0;
     CPU_REG16(CPU_R_PC)->Byte[1].UByte = data1;
     CPU_REG16(CPU_R_SP)->UWord = sp + 2;
-        
+
     return 16;
 }
 
@@ -1098,7 +1109,7 @@ static int Cpu_Execute_PUSH_RR(Cpu_OpCode_t const * const opcode)
     Memory_Write(sp - 1, rr1);
     Memory_Write(sp - 2, rr0);
     CPU_REG16(CPU_R_SP)->UWord = sp - 2;
-        
+
     return 16;
 }
 
@@ -1116,7 +1127,7 @@ static int Cpu_Execute_POP_RR(Cpu_OpCode_t const * const opcode)
     CPU_REG16(opcode->Param0)->Byte[0].UByte = data0;
     CPU_REG16(opcode->Param0)->Byte[1].UByte = data1;
     CPU_REG16(CPU_R_SP)->UWord = sp + 2;
-        
+
     return 12;
 }
 
