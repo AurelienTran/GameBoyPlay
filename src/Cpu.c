@@ -153,6 +153,7 @@ static int Cpu_Execute_CP_N(Cpu_OpCode_t const * const opcode);
 /* 16 bit Arithmetic/Logical Command */
 static int Cpu_Execute_INC_RR(Cpu_OpCode_t const * const opcode);
 static int Cpu_Execute_DEC_RR(Cpu_OpCode_t const * const opcode);
+static int Cpu_Execute_ADD_RR_RR(Cpu_OpCode_t const * const opcode);
 
 /* 8 bit Rotation/Shift/Bit Command */
 static int Cpu_Execute_BIT_N_R(Cpu_OpCode_t const * const opcode);
@@ -186,7 +187,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x06, 2, "LD B,0x%02x",        CPU_P_UBYTE, CPU_R_B,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x07, 1, "RLCA",               CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_RLCA},
     {0x08, 3, "LD (0x%04x),SP",     CPU_P_UWORD, CPU_NULL, CPU_R_SP, Cpu_Execute_LD_pNN_RR},
-    {0x09, 1, "ADD HL,BC",          CPU_P_NONE,  CPU_R_HL, CPU_R_BC, Cpu_Execute_Unimplemented},
+    {0x09, 1, "ADD HL,BC",          CPU_P_NONE,  CPU_R_HL, CPU_R_BC, Cpu_Execute_ADD_RR_RR},
     {0x0A, 1, "LD A,(BC)",          CPU_P_NONE,  CPU_R_A,  CPU_R_BC, Cpu_Execute_LD_R_pRR},
     {0x0B, 1, "DEC BC",             CPU_P_NONE,  CPU_R_BC, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x0C, 1, "INC C",              CPU_P_NONE,  CPU_R_C,  CPU_NULL, Cpu_Execute_INC_R},
@@ -202,7 +203,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x16, 2, "LD D,0x%02x",        CPU_P_UBYTE, CPU_R_D,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x17, 1, "RLA",                CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_RLA},
     {0x18, 2, "JR %d",              CPU_P_SBYTE, CPU_F_NO, CPU_F_NO, Cpu_Execute_JR_F_N},
-    {0x19, 1, "ADD HL,DE",          CPU_P_NONE,  CPU_R_HL, CPU_R_DE, Cpu_Execute_Unimplemented},
+    {0x19, 1, "ADD HL,DE",          CPU_P_NONE,  CPU_R_HL, CPU_R_DE, Cpu_Execute_ADD_RR_RR},
     {0x1A, 1, "LD A,(DE)",          CPU_P_NONE,  CPU_R_A,  CPU_R_DE, Cpu_Execute_LD_R_pRR},
     {0x1B, 1, "DEC DE",             CPU_P_NONE,  CPU_R_DE, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x1C, 1, "INC E",              CPU_P_NONE,  CPU_R_E,  CPU_NULL, Cpu_Execute_INC_R},
@@ -218,7 +219,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x26, 2, "LD H,0x%02x",        CPU_P_UBYTE, CPU_R_H,  CPU_NULL, Cpu_Execute_LD_R_N},
     {0x27, 1, "DAA",                CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x28, 2, "JR Z,%d",            CPU_P_SBYTE, CPU_F_Z,  CPU_F_Z,  Cpu_Execute_JR_F_N},
-    {0x29, 1, "ADD HL,HL",          CPU_P_NONE,  CPU_R_HL, CPU_R_HL, Cpu_Execute_Unimplemented},
+    {0x29, 1, "ADD HL,HL",          CPU_P_NONE,  CPU_R_HL, CPU_R_HL, Cpu_Execute_ADD_RR_RR},
     {0x2A, 1, "LD A,(HL+)",         CPU_P_NONE,  CPU_R_A,  CPU_R_HL, Cpu_Execute_Unimplemented},
     {0x2B, 1, "DEC HL",             CPU_P_NONE,  CPU_R_HL, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x2C, 1, "INC L",              CPU_P_NONE,  CPU_R_L,  CPU_NULL, Cpu_Execute_INC_R},
@@ -234,7 +235,7 @@ static Cpu_OpCode_t const Cpu_OpCode[] =
     {0x36, 2, "LD (HL),0x%02x",     CPU_P_UBYTE, CPU_R_HL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x37, 1, "SCF",                CPU_P_NONE,  CPU_NULL, CPU_NULL, Cpu_Execute_Unimplemented},
     {0x38, 2, "JR C,%d",            CPU_P_SBYTE, CPU_F_C,  CPU_F_C,  Cpu_Execute_JR_F_N},
-    {0x39, 1, "ADD HL,SP",          CPU_P_NONE,  CPU_R_HL, CPU_R_SP, Cpu_Execute_Unimplemented},
+    {0x39, 1, "ADD HL,SP",          CPU_P_NONE,  CPU_R_HL, CPU_R_SP, Cpu_Execute_ADD_RR_RR},
     {0x3A, 1, "LD A,(HL-)",         CPU_P_NONE,  CPU_R_A,  CPU_R_HL, Cpu_Execute_Unimplemented},
     {0x3B, 1, "DEC SP",             CPU_P_NONE,  CPU_R_SP, CPU_NULL, Cpu_Execute_DEC_RR},
     {0x3C, 1, "INC A",              CPU_P_NONE,  CPU_R_A,  CPU_NULL, Cpu_Execute_INC_R},
@@ -1277,6 +1278,33 @@ static int Cpu_Execute_DEC_RR(Cpu_OpCode_t const * const opcode)
     uint16_t const data = CPU_REG16(opcode->Param0)->UWord;
     uint16_t const result = data - 1;
     CPU_REG16(opcode->Param0)->UWord = result;
+
+    return 8;
+}
+
+
+/**
+ * OpCode: ADD RR,RR
+ * Size:1, Duration:8, ZNHC Flag:-0HC
+ */
+static int Cpu_Execute_ADD_RR_RR(Cpu_OpCode_t const * const opcode)
+{
+    /* Execute the command */
+    uint16_t const data0 = CPU_REG16(opcode->Param0)->UWord;
+    uint16_t const data1 = CPU_REG16(opcode->Param1)->UWord;
+    uint16_t const result = data0 + data1;
+    CPU_REG16(opcode->Param0)->UWord = result;
+
+    /* Set up Flag */
+    CPU_FLAG_CLEAR(CPU_F_N | CPU_F_H | CPU_F_C);
+    if(((data0 & 0x0F) + (data1 & 0x0F)) > 0x0F)
+    {
+        CPU_FLAG_SET(CPU_F_H);
+    }
+    if(((uint32_t)data0 + (uint32_t)data1) > 0x00FF)
+    {
+        CPU_FLAG_SET(CPU_F_C);
+    }
 
     return 8;
 }
